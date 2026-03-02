@@ -1,0 +1,1990 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>服务履约系统优化方案</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans SC', sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    min-height: 100vh;
+    padding: 40px 20px;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: #58a6ff;
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    text-align: center;
+    font-size: 13px;
+    color: #8b949e;
+    margin-bottom: 48px;
+    letter-spacing: 1px;
+  }
+
+  .section {
+    max-width: 960px;
+    margin: 0 auto 56px;
+  }
+
+  .section-title {
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    color: #8b949e;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    padding-left: 12px;
+    border-left: 2px solid #30363d;
+  }
+
+  /* ── Problem Cards ── */
+  .problems {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  .problem-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .problem-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+
+  .p1::before { background: #f85149; }
+  .p2::before { background: #d29922; }
+  .p3::before { background: #388bfd; }
+
+  .problem-num {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #8b949e;
+    margin-bottom: 8px;
+  }
+
+  .p1 .problem-num { color: #f85149; }
+  .p2 .problem-num { color: #d29922; }
+  .p3 .problem-num { color: #388bfd; }
+
+  .problem-title {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #e6edf3;
+  }
+
+  .problem-desc {
+    font-size: 13px;
+    line-height: 1.7;
+    color: #8b949e;
+  }
+
+  /* ── Arrow ── */
+  .arrow-down {
+    text-align: center;
+    font-size: 28px;
+    color: #30363d;
+    margin: 4px 0;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+  }
+
+  /* ── Solution Flow ── */
+  .solutions {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .sol-row {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 0;
+    align-items: stretch;
+  }
+
+  .sol-label {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px 0 0 10px;
+    padding: 20px 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border-right: none;
+    position: relative;
+  }
+
+  .sol-label::after {
+    content: '▶';
+    position: absolute;
+    right: -14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    color: #30363d;
+    z-index: 1;
+  }
+
+  .sol-label-tag {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+
+  .s1 .sol-label-tag { color: #f85149; }
+  .s2 .sol-label-tag { color: #d29922; }
+  .s3 .sol-label-tag { color: #388bfd; }
+
+  .sol-label-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #e6edf3;
+    line-height: 1.4;
+  }
+
+  .sol-steps {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 0 10px 10px 0;
+    padding: 20px 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .step-box {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 13px;
+    color: #c9d1d9;
+    white-space: nowrap;
+    transition: border-color 0.2s;
+  }
+
+  .step-box:hover {
+    border-color: #58a6ff;
+    color: #58a6ff;
+  }
+
+  .step-box.key {
+    border-color: #388bfd44;
+    background: #1f2d3d;
+    color: #79c0ff;
+    font-weight: 500;
+  }
+
+  .s1 .step-box.key { border-color: #f8514944; background: #2d1b1b; color: #ffa198; }
+  .s2 .step-box.key { border-color: #d2992244; background: #2d2316; color: #e3b341; }
+  .s3 .step-box.key { border-color: #388bfd44; background: #1f2d3d; color: #79c0ff; }
+
+  .step-arrow {
+    color: #30363d;
+    font-size: 12px;
+  }
+
+  .sol-connector {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin: 0;
+  }
+
+  .connector-line {
+    width: 110px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .connector-line-inner {
+    width: 1px;
+    background: linear-gradient(to bottom, #30363d, #30363d);
+    height: 20px;
+  }
+
+  .connector-space {
+    flex: 1;
+  }
+
+  /* ── Result ── */
+  .result-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .result-item {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .result-icon {
+    font-size: 22px;
+    margin-bottom: 4px;
+  }
+
+  .result-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #58a6ff;
+  }
+
+  .result-desc {
+    font-size: 12px;
+    color: #8b949e;
+    line-height: 1.6;
+  }
+
+  /* ── Arch Diagram ── */
+  .arch {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 28px 32px;
+  }
+
+  .arch-row {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+
+  .arch-node {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-size: 13px;
+    color: #c9d1d9;
+    text-align: center;
+    min-width: 110px;
+  }
+
+  .arch-node.blue {
+    border-color: #388bfd55;
+    color: #79c0ff;
+    background: #1a2332;
+  }
+
+  .arch-node.green {
+    border-color: #3fb95055;
+    color: #56d364;
+    background: #1a2b1c;
+  }
+
+  .arch-node.yellow {
+    border-color: #d2992255;
+    color: #e3b341;
+    background: #2b2416;
+  }
+
+  .arch-node.red {
+    border-color: #f8514955;
+    color: #ffa198;
+    background: #2d1b1b;
+  }
+
+  .arch-node.gray {
+    border-color: #484f58;
+    color: #8b949e;
+  }
+
+  .arch-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: #6e7681;
+    letter-spacing: 1px;
+    text-align: center;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+
+  .arch-divider {
+    border: none;
+    border-top: 1px dashed #21262d;
+    margin: 12px 0;
+  }
+
+  .arch-arrow-row {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin: 4px 0;
+  }
+
+  .arch-arrow {
+    font-size: 16px;
+    color: #30363d;
+  }
+
+  /* ── Arch extras ── */
+  .arch-node-purple { background: #201a32; border: 1px solid #8957e544; color: #d2a8ff; }
+
+  .arch-infra-section { margin: 8px 0; }
+  .arch-infra-label {
+    font-size: 11px; font-weight: 700; color: #6e7681;
+    letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px;
+  }
+  .arch-infra-meta-grid {
+    display: flex; align-items: stretch; gap: 0;
+    background: #0d1117; border: 1px solid #21262d;
+    border-radius: 10px; overflow: hidden;
+  }
+  .arch-infra-meta-col { flex: 1; padding: 14px; border-right: 1px solid #21262d; }
+  .arch-infra-meta-col:last-child { border-right: none; }
+  .arch-imc-0 { background: #1a2332; }
+  .arch-imc-1 { background: #2b2416; }
+  .arch-imc-2 { background: #1a2b1c; }
+  .arch-imc-3 { background: #201a32; }
+  .arch-imc-header { display: flex; align-items: baseline; gap: 6px; margin-bottom: 6px; }
+  .arch-imc-num { font-size: 10px; font-weight: 700; color: #6e7681; letter-spacing: 0.5px; white-space: nowrap; }
+  .arch-imc-name { font-size: 13px; font-weight: 700; color: #e6edf3; }
+  .arch-imc-desc { font-size: 11px; color: #6e7681; line-height: 1.55; margin-bottom: 10px; }
+  .arch-imc-tables { display: flex; flex-direction: column; gap: 4px; }
+  .arch-imc-table {
+    font-size: 11px; font-family: monospace;
+    background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 4px; padding: 3px 8px; color: #8b949e;
+  }
+  .arch-infra-meta-arr {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 0 6px; font-size: 14px; color: #30363d; gap: 2px;
+    background: #0d1117; flex-shrink: 0;
+  }
+  .arch-infra-meta-arr-label { font-size: 10px; color: #484f58; }
+  .s1-block {
+    padding: 20px 24px;
+    border-bottom: 1px solid #21262d;
+  }
+  .s1-block:last-child { border-bottom: none; }
+
+  .s1-block-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #c9d1d9;
+    margin-bottom: 14px;
+    letter-spacing: 0.5px;
+  }
+
+  .s1-table-row {
+    display: grid;
+    grid-template-columns: 130px 1fr 200px;
+    gap: 12px;
+    padding: 9px 0;
+    border-bottom: 1px solid #21262d;
+    font-size: 12.5px;
+    color: #8b949e;
+    align-items: center;
+  }
+  .s1-table-row.header {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #6e7681;
+    text-transform: uppercase;
+    border-bottom: 1px solid #30363d;
+  }
+  .s1-table-row:last-child { border-bottom: none; }
+
+  .tag-red {
+    background: #2d1b1b;
+    border: 1px solid #f8514944;
+    color: #ffa198;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    display: inline-block;
+  }
+  .tag-gray {
+    background: #161b22;
+    border: 1px solid #30363d;
+    color: #8b949e;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    display: inline-block;
+  }
+  .tag-warn { color: #e3b341; font-size: 12px; }
+  .tag-ok   { color: #56d364; font-size: 12px; }
+
+  .s1-step-row {
+    display: grid;
+    grid-template-columns: 60px 1fr;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid #21262d;
+    align-items: flex-start;
+  }
+  .s1-step-row:last-child { border-bottom: none; }
+
+  .s1-step-num {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #f85149;
+    text-align: center;
+    background: #2d1b1b;
+    border: 1px solid #f8514933;
+    border-radius: 6px;
+    padding: 6px 4px;
+    line-height: 1.2;
+  }
+
+  .s1-step-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #e6edf3;
+    margin-bottom: 6px;
+  }
+
+  .s1-step-desc {
+    font-size: 12.5px;
+    color: #8b949e;
+    line-height: 1.75;
+  }
+
+  .hl { color: #ffa198; font-weight: 500; }
+
+  .s1-summary { background: #1a1f26; }
+
+  .s1-metric { display: flex; flex-direction: column; gap: 4px; }
+  .s1-metric-val   { font-size: 16px; font-weight: 700; color: #f85149; }
+  .s1-metric-label { font-size: 11px; color: #6e7681; letter-spacing: 0.5px; }
+
+  /* ── S2 Detail ── */
+  .s2-block { padding: 20px 24px; border-bottom: 1px solid #21262d; }
+  .s2-block:last-child { border-bottom: none; }
+  .s2-block-title { font-size: 13px; font-weight: 700; color: #c9d1d9; margin-bottom: 14px; letter-spacing: 0.5px; }
+  .s2-desc { font-size: 12.5px; color: #8b949e; line-height: 1.75; margin-bottom: 16px; }
+  .hl2 { color: #e3b341; font-weight: 500; }
+
+  .s2-pain-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .s2-pain-item { display: flex; gap: 10px; align-items: flex-start; background: #1a1f26; border: 1px solid #30363d; border-radius: 6px; padding: 10px 12px; }
+  .s2-pain-icon { font-size: 16px; flex-shrink: 0; }
+  .s2-pain-text { font-size: 12.5px; color: #8b949e; line-height: 1.6; }
+
+  .s2-flow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .s2-node { background: #1a2332; border: 1px solid #388bfd44; border-radius: 8px; padding: 8px 14px; font-size: 13px; color: #79c0ff; text-align: center; line-height: 1.3; }
+  .s2-node-sub { font-size: 10px; color: #388bfd; letter-spacing: 0.5px; margin-top: 2px; }
+  .s2-node-start, .s2-node-end { border-color: #56d36444; background: #1a2b1c; color: #56d364; }
+  .s2-node-start .s2-node-sub, .s2-node-end .s2-node-sub { color: #3fb950; }
+  .s2-node-key { border-color: #e3b34144; background: #2b2416; color: #e3b341; }
+  .s2-node-key .s2-node-sub { color: #d29922; }
+  .s2-node-cancel { background: #21262d; border: 1px solid #484f58; color: #8b949e; border-radius: 6px; }
+  .s2-flow-arrow { color: #484f58; font-size: 16px; }
+  .s2-note { font-size: 11px; color: #6e7681; margin-top: 8px; padding: 2px 0 2px 8px; border-left: 2px solid #30363d; }
+
+  .s2-ext-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 10px; }
+  .s2-ext-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 4px; }
+  .s2-ext-type { font-size: 12px; font-weight: 700; color: #c9d1d9; margin-bottom: 4px; }
+  .s2-ext-main { background: #1a2332; border: 1px solid #388bfd33; border-radius: 4px; padding: 4px 8px; font-size: 12px; color: #79c0ff; text-align: center; }
+  .s2-ext-arrow { font-size: 11px; color: #484f58; text-align: center; margin: 2px 0; }
+  .s2-ext-sub { background: #0d1117; border: 1px solid #21262d; border-radius: 4px; padding: 4px 8px; font-size: 11.5px; color: #8b949e; }
+
+  .s2-event-grid { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr; gap: 8px; align-items: center; margin-bottom: 4px; }
+  .s2-event-item { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 10px 12px; text-align: center; }
+  .s2-event-highlight { background: #2b2416; border-color: #d2992244; }
+  .s2-event-src { font-size: 12.5px; font-weight: 700; color: #c9d1d9; margin-bottom: 4px; }
+  .s2-event-eg { font-size: 11px; color: #6e7681; line-height: 1.5; }
+  .s2-event-arrow { font-size: 18px; color: #30363d; text-align: center; }
+
+  .s2-impl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .s2-impl-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px 14px; }
+  .s2-impl-title { font-size: 12.5px; font-weight: 700; color: #e3b341; margin-bottom: 6px; font-family: monospace; }
+  .s2-impl-desc { font-size: 12px; color: #8b949e; line-height: 1.65; }
+
+  .s2-table-row { display: grid; grid-template-columns: 160px 1fr 200px; gap: 12px; padding: 9px 0; border-bottom: 1px solid #21262d; font-size: 12.5px; color: #8b949e; align-items: center; }
+  .s2-header { font-size: 11px; font-weight: 700; letter-spacing: 1px; color: #6e7681; text-transform: uppercase; border-bottom: 1px solid #30363d; }
+  .s2-table-row:last-child { border-bottom: none; }
+  .tag-yellow { background: #2b2416; border: 1px solid #d2992244; color: #e3b341; padding: 3px 8px; border-radius: 4px; font-size: 12px; display: inline-block; }
+  .s2-role { color: #56d364; font-size: 12px; }
+  .s2-summary { background: #1a1f26; }
+  .s2-val { color: #e3b341 !important; }
+
+  /* ── S2 FSM Diagram ── */
+  .s2-fsm-wrap {
+    background: #0d1117;
+    border: 1px solid #21262d;
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .s2-fsm-label {
+    font-size: 11px;
+    color: #6e7681;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .s2-fsm-main {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .s2-fsm-node {
+    background: #161b22;
+    border: 1px solid #388bfd55;
+    border-radius: 10px;
+    padding: 10px 16px;
+    text-align: center;
+    min-width: 90px;
+  }
+  .s2-fsm-name { font-size: 13px; font-weight: 700; color: #79c0ff; }
+  .s2-fsm-code { font-size: 10px; color: #388bfd; letter-spacing: 0.5px; margin-top: 3px; font-family: monospace; }
+  .s2-fsm-start { border-color: #56d36455; background: #1a2b1c; }
+  .s2-fsm-start .s2-fsm-name { color: #56d364; }
+  .s2-fsm-start .s2-fsm-code { color: #3fb950; }
+  .s2-fsm-mid { border-color: #e3b34155; background: #2b2416; }
+  .s2-fsm-mid .s2-fsm-name { color: #e3b341; }
+  .s2-fsm-mid .s2-fsm-code { color: #d29922; }
+  .s2-fsm-end { border-color: #56d36455; background: #1a2b1c; }
+  .s2-fsm-end .s2-fsm-name { color: #56d364; }
+  .s2-fsm-end .s2-fsm-code { color: #3fb950; }
+  .s2-fsm-edge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 4px;
+    gap: 2px;
+  }
+  .s2-fsm-edge-line {
+    width: 32px;
+    height: 1px;
+    background: #30363d;
+  }
+  .s2-fsm-edge-label {
+    font-size: 10px;
+    color: #6e7681;
+    white-space: nowrap;
+    max-width: 70px;
+    text-align: center;
+    line-height: 1.3;
+  }
+  .s2-fsm-arrow-head { font-size: 10px; color: #484f58; }
+  .s2-fsm-terminals { border-top: 1px dashed #21262d; padding-top: 12px; }
+  .s2-fsm-terminal-label { font-size: 11px; color: #6e7681; margin-bottom: 8px; }
+  .s2-fsm-terminal-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .s2-fsm-term {
+    background: #161b22;
+    border: 1px solid #484f5855;
+    border-radius: 8px;
+    padding: 8px 14px;
+    text-align: center;
+    flex: 1;
+    min-width: 130px;
+  }
+  .s2-fsm-term-name { font-size: 12px; font-weight: 700; color: #8b949e; }
+  .s2-fsm-term-code { font-size: 10px; color: #484f58; font-family: monospace; margin: 2px 0; }
+  .s2-fsm-term-by { font-size: 11px; color: #6e7681; }
+
+  /* ── S2 Extension Grid v2 ── */
+  .s2-ext2-wrap {
+    background: #0d1117;
+    border: 1px solid #21262d;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .s2-ext2-header {
+    display: grid;
+    grid-template-columns: 90px 1fr 1fr;
+    background: #161b22;
+    border-bottom: 1px solid #21262d;
+    padding: 8px 14px;
+    gap: 12px;
+  }
+  .s2-ext2-axis { font-size: 11px; font-weight: 700; color: #6e7681; letter-spacing: 1px; text-transform: uppercase; }
+  .s2-ext2-col { font-size: 12px; font-weight: 700; color: #79c0ff; }
+  .s2-ext2-row {
+    display: grid;
+    grid-template-columns: 90px 1fr 1fr;
+    padding: 10px 14px;
+    gap: 12px;
+    border-bottom: 1px solid #21262d;
+    align-items: flex-start;
+  }
+  .s2-ext2-row:last-child { border-bottom: none; }
+  .s2-ext2-type { font-size: 13px; font-weight: 700; color: #c9d1d9; padding-top: 4px; }
+  .s2-ext2-subs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .s2-sub-chip {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 11.5px;
+    color: #8b949e;
+  }
+
+  /* ── S2 Trigger Wrap ── */
+  .s2-trigger-wrap { display: flex; flex-direction: column; align-items: stretch; gap: 0; }
+  .s2-trigger-sources {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .s2-trigger-src {
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+    border: 1px solid;
+  }
+  .s2-tsrc-blue   { background: #1a2332; border-color: #388bfd44; }
+  .s2-tsrc-green  { background: #1a2b1c; border-color: #56d36444; }
+  .s2-tsrc-purple { background: #201a32; border-color: #8957e544; }
+  .s2-tsrc-orange { background: #2b2416; border-color: #d2992244; }
+  .s2-tsrc-icon { font-size: 18px; margin-bottom: 4px; }
+  .s2-tsrc-name { font-size: 12.5px; font-weight: 700; color: #c9d1d9; margin-bottom: 4px; }
+  .s2-tsrc-eg { font-size: 11px; color: #6e7681; line-height: 1.5; }
+  .s2-trigger-arrows {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    margin: 4px 0;
+  }
+  .s2-trigger-arr { text-align: center; font-size: 16px; color: #30363d; }
+  .s2-trigger-arrows-down { grid-template-columns: 1fr; }
+  .s2-arr-down { font-size: 20px; color: #d29922; }
+  .s2-trigger-engine {
+    background: #2b2416;
+    border: 1px solid #d2992244;
+    border-radius: 10px;
+    padding: 14px 18px;
+  }
+  .s2-engine-title { font-size: 13px; font-weight: 700; color: #e3b341; margin-bottom: 12px; }
+  .s2-engine-steps { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+  .s2-engine-step {
+    background: #1a1208;
+    border: 1px solid #d2992233;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+    color: #e3b341;
+    text-align: center;
+    line-height: 1.3;
+    flex: 1;
+    min-width: 80px;
+  }
+  .s2-engine-step-last { border-color: #56d36444; color: #56d364; background: #0d1f0d; }
+  .s2-engine-step-sub { font-size: 10px; color: #6e7681; margin-top: 2px; }
+  .s2-engine-step-arrow { color: #484f58; font-size: 14px; }
+  .s2-trigger-outputs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .s2-output-item {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 12px;
+    color: #8b949e;
+    text-align: center;
+  }
+
+  /* ── S2 Impl Card role ── */
+  .s2-impl-role { font-size: 11px; color: #6e7681; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .s2-impl-card code { background: #0d1117; border: 1px solid #21262d; border-radius: 3px; padding: 1px 4px; font-size: 11px; color: #79c0ff; }
+
+  /* ── S2 DB Cards ── */
+  .s2-db-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .s2-db-card { background: #0d1117; border: 1px solid #21262d; border-radius: 10px; padding: 14px; }
+  .s2-db-name { font-size: 12.5px; font-weight: 700; color: #e3b341; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .s2-db-tag { font-size: 10px; background: #2b2416; border: 1px solid #d2992233; color: #d29922; border-radius: 4px; padding: 1px 6px; font-weight: 400; }
+  .s2-db-fields { display: grid; grid-template-columns: auto 1fr; gap: 3px 8px; align-items: center; }
+  .s2-db-field { font-family: monospace; font-size: 11px; color: #79c0ff; background: #161b22; border: 1px solid #21262d; border-radius: 3px; padding: 2px 6px; }
+  .s2-field-key { border-color: #388bfd44; color: #79c0ff; }
+  .s2-db-field-desc { font-size: 11px; color: #6e7681; }
+
+  /* ── S3 Detail ── */
+  .s3-block { padding: 20px 24px; border-bottom: 1px solid #21262d; }
+  .s3-block:last-child { border-bottom: none; }
+  .s3-block-title { font-size: 13px; font-weight: 700; color: #c9d1d9; margin-bottom: 14px; }
+  .s3-desc { font-size: 12.5px; color: #8b949e; line-height: 1.75; margin-bottom: 16px; }
+  .hl3 { color: #79c0ff; font-weight: 500; }
+
+  .s3-pain-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .s3-pain-item { display: flex; gap: 10px; align-items: flex-start; background: #1a2332; border: 1px solid #388bfd22; border-radius: 6px; padding: 10px 12px; }
+  .s3-pain-icon { font-size: 16px; flex-shrink: 0; }
+  .s3-pain-text { font-size: 12px; color: #8b949e; line-height: 1.6; }
+  .s3-pain-text b { color: #79c0ff; font-weight: 600; }
+
+  /* Arch */
+  .s3-arch-wrap { display: flex; flex-direction: column; gap: 0; background: #0d1117; border: 1px solid #21262d; border-radius: 10px; overflow: hidden; }
+  .s3-arch-layer { padding: 14px 18px; }
+  .s3-layer-biz { background: #1a2b1c; border-bottom: 1px solid #21262d; }
+  .s3-layer-gw { background: #2b2416; border-bottom: 1px solid #21262d; }
+  .s3-layer-adapter { background: #201a32; }
+  .s3-arch-layer-label { font-size: 11px; font-weight: 700; color: #6e7681; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; }
+  .s3-arch-layer-nodes { display: flex; gap: 8px; flex-wrap: wrap; }
+  .s3-arch-node { border-radius: 8px; padding: 8px 14px; font-size: 12.5px; text-align: center; border: 1px solid; min-width: 90px; }
+  .s3-node-biz { background: #1a3320; border-color: #56d36444; color: #56d364; }
+  .s3-node-adapter { background: #1a1a32; border-color: #8957e544; color: #d2a8ff; }
+  .s3-node-adapter-new { background: #1a1a32; border-color: #8957e555; color: #d2a8ff; border-style: dashed; }
+  .s3-node-sub2 { font-size: 10px; color: #6e7681; margin-top: 2px; }
+  .s3-gw-nodes { display: flex; flex-wrap: wrap; gap: 8px; }
+  .s3-gw-cap { background: #231c0d; border: 1px solid #e3b34133; border-radius: 6px; padding: 6px 12px; font-size: 12px; color: #e3b341; }
+  .s3-arch-arr-row { display: flex; justify-content: center; padding: 6px 0; background: #0d1117; }
+  .s3-arch-arr { font-size: 12px; color: #484f58; }
+
+  /* Dual flow */
+  .s3-dual-flow { display: grid; grid-template-columns: 1fr 1px 1fr; gap: 20px; }
+  .s3-dual-divider { background: #21262d; }
+  .s3-flow-col {}
+  .s3-flow-col-title { font-size: 12px; font-weight: 700; color: #c9d1d9; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #21262d; }
+  .s3-flow-step { display: flex; gap: 10px; align-items: flex-start; border-radius: 8px; padding: 10px 12px; border: 1px solid; margin-bottom: 0; }
+  .s3-fstep-biz { background: #1a2b1c; border-color: #56d36433; }
+  .s3-fstep-gw  { background: #2b2416; border-color: #e3b34133; }
+  .s3-fstep-adapter { background: #201a32; border-color: #8957e533; }
+  .s3-fstep-sm  { background: #1a2332; border-color: #388bfd44; }
+  .s3-fstep-icon { font-size: 16px; flex-shrink: 0; padding-top: 1px; }
+  .s3-fstep-name { font-size: 12.5px; font-weight: 700; color: #c9d1d9; margin-bottom: 3px; }
+  .s3-fstep-desc { font-size: 11.5px; color: #6e7681; line-height: 1.5; }
+  .s3-flow-down { text-align: center; font-size: 14px; color: #30363d; padding: 4px 0; }
+
+  /* Mapping */
+  .s3-mapping-wrap { background: #0d1117; border: 1px solid #21262d; border-radius: 10px; overflow: hidden; }
+  .s3-mapping-header { display: grid; grid-template-columns: 90px 140px 100px 160px 1fr; gap: 10px; padding: 8px 14px; background: #161b22; font-size: 11px; font-weight: 700; color: #6e7681; letter-spacing: 1px; text-transform: uppercase; border-bottom: 1px solid #21262d; }
+  .s3-mapping-row { display: grid; grid-template-columns: 90px 140px 100px 160px 1fr; gap: 10px; padding: 9px 14px; border-bottom: 1px solid #1c2128; align-items: center; font-size: 12.5px; }
+  .s3-mapping-row:last-of-type { border-bottom: none; }
+  .s3-vendor-tag { border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; display: inline-block; }
+  .s3-va { background: #1a2332; border: 1px solid #388bfd44; color: #79c0ff; }
+  .s3-vb { background: #2b2416; border: 1px solid #d2992244; color: #e3b341; }
+  .s3-vc { background: #2d1b1b; border: 1px solid #f8514944; color: #ffa198; }
+  .s3-code { font-family: monospace; font-size: 11.5px; color: #8b949e; }
+  .s3-meaning { font-size: 12px; color: #6e7681; }
+  .s3-event-tag { font-family: monospace; font-size: 11px; background: #1a2b1c; border: 1px solid #56d36433; color: #56d364; border-radius: 4px; padding: 2px 8px; display: inline-block; }
+  .s3-transit { font-size: 11.5px; color: #79c0ff; }
+  .s3-mapping-note { font-size: 11px; color: #6e7681; padding: 8px 14px; background: #161b22; border-top: 1px solid #21262d; }
+
+  /* Route */
+  .s3-route-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .s3-route-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 14px 12px; text-align: center; }
+  .s3-route-icon { font-size: 22px; margin-bottom: 6px; }
+  .s3-route-name { font-size: 13px; font-weight: 700; color: #c9d1d9; margin-bottom: 6px; }
+  .s3-route-desc { font-size: 12px; color: #6e7681; line-height: 1.6; }
+
+  /* Binding chain */
+  .s3-binding-wrap {
+    background: #0d1117;
+    border: 1px solid #21262d;
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 14px;
+  }
+  .s3-binding-label {
+    font-size: 11px; color: #6e7681; letter-spacing: 1px;
+    text-transform: uppercase; margin-bottom: 14px;
+  }
+  .s3-binding-chain {
+    display: flex; align-items: center; gap: 0; flex-wrap: wrap;
+  }
+  .s3-binding-node {
+    border-radius: 10px; padding: 10px 14px;
+    text-align: center; border: 1px solid; min-width: 96px;
+  }
+  .s3-bn-channel { background: #1a2b1c; border-color: #56d36444; }
+  .s3-bn-pack    { background: #2b2416; border-color: #d2992244; }
+  .s3-bn-card    { background: #201a32; border-color: #8957e544; }
+  .s3-bn-apply   { background: #2d1b1b; border-color: #f8514944; }
+  .s3-bn-gw      { background: #1a2332; border-color: #388bfd44; }
+  .s3-bn-icon  { font-size: 18px; margin-bottom: 4px; }
+  .s3-bn-name  { font-size: 12.5px; font-weight: 700; color: #c9d1d9; margin-bottom: 3px; }
+  .s3-bn-desc  { font-size: 10.5px; color: #6e7681; line-height: 1.4; }
+  .s3-binding-edge {
+    display: flex; flex-direction: column;
+    align-items: center; padding: 0 6px; gap: 2px; flex-shrink: 0;
+  }
+  .s3-binding-edge-line  { width: 24px; height: 1px; background: #30363d; }
+  .s3-binding-edge-label { font-size: 10px; color: #6e7681; white-space: nowrap; }
+  .s3-binding-edge-arr   { font-size: 10px; color: #484f58; }
+
+  .s3-binding-notes {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  }
+  .s3-binding-note-item {
+    background: #161b22; border: 1px solid #30363d;
+    border-radius: 8px; padding: 12px 14px;
+  }
+  .s3-bni-title {
+    font-size: 12.5px; font-weight: 700; color: #79c0ff; margin-bottom: 6px;
+  }
+  .s3-bni-desc {
+    font-size: 12px; color: #8b949e; line-height: 1.65;
+  }
+  .s3-bni-desc code {
+    background: #0d1117; border: 1px solid #21262d;
+    border-radius: 3px; padding: 1px 5px;
+    font-size: 11px; color: #e3b341;
+  }
+
+  /* Caps */
+  .s3-caps-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .s3-cap-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px 14px; }
+  .s3-cap-title { font-size: 13px; font-weight: 700; color: #e3b341; margin-bottom: 6px; }
+  .s3-cap-desc { font-size: 12px; color: #8b949e; line-height: 1.65; }
+
+  /* DB row */
+  .s3-db-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .s3-db-mini { background: #0d1117; border: 1px solid #21262d; border-radius: 8px; padding: 12px; }
+  .s3-db-mini-name { font-size: 12px; font-weight: 700; color: #79c0ff; margin-bottom: 6px; }
+  .s3-db-mini-fields { font-family: monospace; font-size: 11px; color: #6e7681; line-height: 1.8; }
+
+  .s3-summary { background: #1a1f26; }
+  .s3-val { color: #388bfd !important; }
+
+  /* ── Arch Meta Layer ── */
+  .arch-node-purple {
+    background: #201a32;
+    border: 1px solid #8957e544;
+    color: #d2a8ff;
+  }
+  .arch-label-meta {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .arch-label-tag {
+    font-size: 10px; background: #2b2416; border: 1px solid #d2992233;
+    color: #d29922; border-radius: 4px; padding: 2px 8px;
+    font-weight: 400; letter-spacing: 0; text-transform: none;
+  }
+  .arch-meta-wrap {
+    background: #161b22; border: 1px solid #30363d;
+    border-radius: 10px; padding: 16px 20px; margin: 8px 0;
+  }
+  .arch-meta-chain {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 0;
+  }
+  .arch-meta-node {
+    border-radius: 10px; padding: 10px 14px;
+    text-align: center; border: 1px solid; min-width: 100px;
+  }
+  .arch-mn-item { background: #1a2332; border-color: #388bfd44; }
+  .arch-mn-form { background: #2b2416; border-color: #d2992244; }
+  .arch-mn-svc  { background: #1a2b1c; border-color: #56d36444; }
+  .arch-mn-pack { background: #2d1b1b; border-color: #f8514944; }
+  .arch-mn-card { background: #201a32; border-color: #8957e544; }
+  .arch-mn-num  { font-size: 10px; color: #6e7681; margin-bottom: 4px; font-weight: 700; }
+  .arch-mn-name { font-size: 13px; font-weight: 700; color: #e6edf3; margin-bottom: 4px; }
+  .arch-mn-desc { font-size: 10.5px; color: #6e7681; line-height: 1.4; }
+  .arch-meta-arrow {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 0 8px; color: #30363d; font-size: 14px; gap: 2px;
+  }
+  .arch-meta-arrow-label { font-size: 10px; color: #484f58; }
+
+  /* ── Antibloat Section ── */
+  .antibloat-wrap {
+    background: #161b22; border: 1px solid #30363d;
+    border-radius: 12px; overflow: hidden;
+  }
+  .ab-block { padding: 20px 24px; border-bottom: 1px solid #21262d; }
+  .ab-block:last-child { border-bottom: none; }
+  .ab-block-title { font-size: 13px; font-weight: 700; color: #c9d1d9; margin-bottom: 14px; }
+
+  .ab-bloat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .ab-bloat-item {
+    background: #2d1b1b; border: 1px solid #f8514922;
+    border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .ab-bloat-num { font-size: 11px; font-weight: 700; color: #f85149; letter-spacing: 1px; }
+  .ab-bloat-text { font-size: 12px; color: #8b949e; line-height: 1.6; }
+
+  .ab-sol-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .ab-sol-card {
+    background: #0d1117; border: 1px solid #21262d;
+    border-radius: 10px; padding: 16px;
+  }
+  .ab-sol-icon { font-size: 22px; margin-bottom: 8px; }
+  .ab-sol-title { font-size: 13.5px; font-weight: 700; color: #e3b341; margin-bottom: 8px; }
+  .ab-sol-desc { font-size: 12px; color: #8b949e; line-height: 1.7; margin-bottom: 12px; }
+  .ab-sol-desc strong { color: #e3b341; font-weight: 600; }
+  .ab-sol-example {
+    background: #161b22; border: 1px solid #30363d;
+    border-radius: 6px; padding: 10px 12px;
+  }
+  .ab-eg-label { font-size: 10px; color: #6e7681; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+  .ab-eg-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .ab-eg-atom {
+    background: #1a2332; border: 1px solid #388bfd44;
+    border-radius: 4px; padding: 3px 10px; font-size: 12px; color: #79c0ff;
+  }
+  .ab-eg-arrow { font-size: 12px; color: #484f58; }
+  .ab-eg-forms { font-size: 11.5px; color: #6e7681; line-height: 1.6; }
+  .ab-eg-rule {
+    background: #1a2b1c; border: 1px solid #56d36433;
+    border-radius: 4px; padding: 3px 10px; font-size: 11px; color: #56d364;
+  }
+
+  /* dep layer */
+  .ab-dep-wrap { display: flex; flex-direction: column; gap: 0; }
+  .ab-dep-row { display: flex; align-items: center; gap: 16px; }
+  .ab-dep-layer {
+    flex: 1; border-radius: 8px; padding: 12px 16px; border: 1px solid;
+  }
+  .ab-dl-0 { background: #1a2332; border-color: #388bfd44; }
+  .ab-dl-1 { background: #2b2416; border-color: #d2992244; }
+  .ab-dl-2 { background: #1a2b1c; border-color: #56d36444; }
+  .ab-dl-3 { background: #201a32; border-color: #8957e544; }
+  .ab-dl-num { font-size: 10px; font-weight: 700; color: #6e7681; letter-spacing: 1px; margin-bottom: 4px; }
+  .ab-dl-name { font-size: 13px; font-weight: 700; color: #e6edf3; margin-bottom: 6px; }
+  .ab-dl-fields { font-family: monospace; font-size: 11px; color: #6e7681; line-height: 1.7; }
+  .ab-dep-note { font-size: 11.5px; color: #6e7681; width: 220px; flex-shrink: 0; line-height: 1.5; }
+  .ab-dep-conn { font-size: 12px; color: #30363d; padding: 4px 0 4px 80px; }
+
+</style>
+</head>
+<body>
+
+<h1>服务履约系统 · 架构优化方案</h1>
+<p class="subtitle">PROBLEM ANALYSIS &amp; SOLUTION DESIGN</p>
+
+<!-- 问题分析 -->
+<div class="section">
+  <div class="section-title">现存核心问题</div>
+  <div class="problems">
+    <div class="problem-card p1">
+      <div class="problem-num">PROBLEM 01 · 性能</div>
+      <div class="problem-title">大 JSON 字段查询瓶颈</div>
+      <div class="problem-desc">申请表中直接存储完整用户服务信息 JSON，导致全表扫描、索引失效，随数据量增长查询耗时持续劣化。</div>
+    </div>
+    <div class="problem-card p2">
+      <div class="problem-num">PROBLEM 02 · 状态机</div>
+      <div class="problem-title">多类型申请单状态机碎片化</div>
+      <div class="problem-desc">各服务类型自持独立状态流转逻辑，既无法复用公共状态，也难以扩展个性化节点，代码维护成本极高。</div>
+    </div>
+    <div class="problem-card p3">
+      <div class="problem-num">PROBLEM 03 · 集成</div>
+      <div class="problem-title">三方供应商交互缺乏统一入口</div>
+      <div class="problem-desc">供应商对接逻辑分散在各业务模块，鉴权、重试、限流、监控各自为战，变更一家供应商影响面难以评估。</div>
+    </div>
+  </div>
+</div>
+
+<div class="arrow-down">↓</div>
+
+<!-- 优化方案流程 -->
+<div class="section" style="margin-top:24px">
+  <div class="section-title">优化方案 · 逐步拆解</div>
+  <div class="solutions">
+
+    <!-- S1 -->
+    <div class="sol-row s1" style="align-items:flex-start">
+      <div class="sol-label" style="min-height:60px">
+        <div class="sol-label-tag">Solution 01 · 存储拆分</div>
+        <div class="sol-label-title">JSON 冷热数据分离 + 结构化索引</div>
+      </div>
+      <div class="sol-steps" style="flex-direction:column; align-items:stretch; gap:0; padding:0;">
+
+        <!-- 现状 -->
+        <div class="s1-block s1-current">
+          <div class="s1-block-title">📋 现状：申请主表承载过多职责</div>
+          <div class="s1-table-row header">
+            <span>表</span><span>存储内容</span><span>问题</span>
+          </div>
+          <div class="s1-table-row">
+            <span class="tag-red">申请主表</span>
+            <span>用户基本信息 + 申请服务信息 + 申请履约信息 + 各类型附加字段（全部堆进大 JSON）</span>
+            <span class="tag-warn">字段臃肿、索引失效、查询全表扫描</span>
+          </div>
+          <div class="s1-table-row">
+            <span class="tag-gray">履约历史状态表</span>
+            <span>状态变更流水记录</span>
+            <span class="tag-ok">结构基本合理，可复用</span>
+          </div>
+          <div class="s1-table-row">
+            <span class="tag-gray">图片证明材料表</span>
+            <span>服务申请履约相关图片附件</span>
+            <span class="tag-ok">已独立，存储职责清晰</span>
+          </div>
+          <div class="s1-table-row">
+            <span class="tag-gray">三方交互记录表</span>
+            <span>与供应商状态交互 + 回传信息</span>
+            <span class="tag-warn">与供应商网关强耦合，归属模糊</span>
+          </div>
+        </div>
+
+        <!-- 箭头 -->
+        <div style="text-align:center; padding:10px 0; color:#30363d; font-size:20px;">↓ 拆分目标</div>
+
+        <!-- 目标结构 -->
+        <div class="s1-block s1-target">
+          <div class="s1-block-title">🎯 目标：五表分责，冷热隔离</div>
+
+          <div class="s1-step-row">
+            <div class="s1-step-num">STEP 1</div>
+            <div class="s1-step-content">
+              <div class="s1-step-title">申请主表瘦身 → 只留核心索引字段</div>
+              <div class="s1-step-desc">保留高频查询字段并全部建索引：<span class="hl">申请ID、用户ID、服务类型、申请状态、创建时间、更新时间、当前受理供应商ID</span>。其余字段全部迁出，主表单行宽度可降低 70% 以上，索引命中率显著提升。</div>
+            </div>
+          </div>
+
+          <div class="s1-step-row">
+            <div class="s1-step-num">STEP 2</div>
+            <div class="s1-step-content">
+              <div class="s1-step-title">新增「申请详情扩展表」→ 承接原 JSON 中的用户信息 &amp; 服务信息</div>
+              <div class="s1-step-desc">将<span class="hl">用户基本信息、申请服务信息、申请履约信息</span>迁入扩展详情表，与主表 1:1 关联。该表无需高频查询，允许保留 JSON 列存储非结构化细节，按需懒加载，不参与列表检索。</div>
+            </div>
+          </div>
+
+          <div class="s1-step-row">
+            <div class="s1-step-num">STEP 3</div>
+            <div class="s1-step-content">
+              <div class="s1-step-title">新增「服务类型扩展字段表」→ 消灭"适用部分类型"的冗余字段</div>
+              <div class="s1-step-desc">各服务类型专属附加字段以 <span class="hl">service_type + apply_id</span> 为联合主键单独存储，主表不再出现大量 NULL 列。新增服务类型只需新增一张扩展表，主表结构零变更。</div>
+            </div>
+          </div>
+
+          <div class="s1-step-row">
+            <div class="s1-step-num">STEP 4</div>
+            <div class="s1-step-content">
+              <div class="s1-step-title">履约历史状态表 → 保留并强化索引</div>
+              <div class="s1-step-desc">现有表结构职责清晰，建议在 <span class="hl">apply_id + created_time</span> 上补充联合索引，支撑状态时间线快速查询；同时增加 <span class="hl">operator_type（系统/人工/供应商）</span> 字段，为后续统一状态机审计做铺垫。</div>
+            </div>
+          </div>
+
+          <div class="s1-step-row">
+            <div class="s1-step-num">STEP 5</div>
+            <div class="s1-step-content">
+              <div class="s1-step-title">三方交互记录表 → 归并至供应商网关模块统一管理</div>
+              <div class="s1-step-desc">该表的业务归属应迁移至 Solution 03 的供应商网关层，申请模块通过<span class="hl">外键 + 事件引用</span>关联，实现模块解耦。申请主表只保留「最新三方回传状态快照」字段，避免跨模块 JOIN。</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 总结 -->
+        <div class="s1-block s1-summary">
+          <div style="display:flex; gap:24px; flex-wrap:wrap;">
+            <div class="s1-metric"><span class="s1-metric-val">5 张</span><span class="s1-metric-label">清晰职责独立表</span></div>
+            <div class="s1-metric"><span class="s1-metric-val">主表字段 ↓70%</span><span class="s1-metric-label">列表查询全走索引</span></div>
+            <div class="s1-metric"><span class="s1-metric-val">零 NULL 冗余</span><span class="s1-metric-label">类型扩展无主表变更</span></div>
+            <div class="s1-metric"><span class="s1-metric-val">按需加载</span><span class="s1-metric-label">详情 / 附件 / 三方数据</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="sol-connector">
+      <div class="connector-line"><div class="connector-line-inner"></div></div>
+      <div class="connector-space"></div>
+    </div>
+
+    <!-- S2 -->
+    <div class="sol-row s2" style="align-items:flex-start">
+      <div class="sol-label" style="min-height:60px">
+        <div class="sol-label-tag">Solution 02 · 状态机</div>
+        <div class="sol-label-title">统一状态机骨架 + 类型差异化扩展</div>
+      </div>
+      <div class="sol-steps" style="flex-direction:column; align-items:stretch; gap:0; padding:0;">
+
+        <!-- 根因 -->
+        <div class="s2-block">
+          <div class="s2-block-title">⚠️ 根因：各服务类型"各自为政"，四大症结</div>
+          <div class="s2-pain-grid">
+            <div class="s2-pain-item"><div class="s2-pain-icon">📦</div><div class="s2-pain-text">特药 / 绿通 / 护理 / 采血各写一套状态枚举，无共同语言，横向统计对比无法做</div></div>
+            <div class="s2-pain-item"><div class="s2-pain-icon">🔀</div><div class="s2-pain-text">相同"处理中"语义，不同类型用了不同字符串，代码里到处 if-else 判断服务类型</div></div>
+            <div class="s2-pain-item"><div class="s2-pain-icon">🔌</div><div class="s2-pain-text">供应商回调直接写死内部状态值，换一家供应商需大面积改业务代码</div></div>
+            <div class="s2-pain-item"><div class="s2-pain-icon">👤</div><div class="s2-pain-text">用户操作 / 系统定时 / 三方回调 / 人工干预四路来源混用同一套逻辑，职责完全不清</div></div>
+          </div>
+        </div>
+
+        <div style="text-align:center; padding:10px 0; color:#30363d; font-size:20px;">↓ 分步设计</div>
+
+        <!-- STEP 1: 骨架状态 + 流转图 -->
+        <div class="s2-block">
+          <div class="s2-block-title">🦴 STEP 1 · 统一骨架状态定义（全类型共享主干）</div>
+          <div class="s2-desc">所有服务类型都必须经历的主干节点，使用统一枚举值，任何申请单都可以映射到骨架上，实现<span class="hl2">横向对齐与统一查询</span>。</div>
+
+          <!-- 主干流转图 -->
+          <div class="s2-fsm-wrap">
+            <div class="s2-fsm-label">主干状态流转图</div>
+            <div class="s2-fsm-main">
+              <div class="s2-fsm-node s2-fsm-start">
+                <div class="s2-fsm-name">草稿</div>
+                <div class="s2-fsm-code">DRAFT</div>
+              </div>
+              <div class="s2-fsm-edge">
+                <div class="s2-fsm-edge-line"></div>
+                <div class="s2-fsm-edge-label">用户提交</div>
+                <div class="s2-fsm-arrow-head">▶</div>
+              </div>
+              <div class="s2-fsm-node">
+                <div class="s2-fsm-name">已提交</div>
+                <div class="s2-fsm-code">SUBMITTED</div>
+              </div>
+              <div class="s2-fsm-edge">
+                <div class="s2-fsm-edge-line"></div>
+                <div class="s2-fsm-edge-label">系统/人工受理</div>
+                <div class="s2-fsm-arrow-head">▶</div>
+              </div>
+              <div class="s2-fsm-node s2-fsm-mid">
+                <div class="s2-fsm-name">受理中</div>
+                <div class="s2-fsm-code">PROCESSING</div>
+              </div>
+              <div class="s2-fsm-edge">
+                <div class="s2-fsm-edge-line"></div>
+                <div class="s2-fsm-edge-label">派单/对接供应商</div>
+                <div class="s2-fsm-arrow-head">▶</div>
+              </div>
+              <div class="s2-fsm-node s2-fsm-mid">
+                <div class="s2-fsm-name">履约中</div>
+                <div class="s2-fsm-code">FULFILLING</div>
+              </div>
+              <div class="s2-fsm-edge">
+                <div class="s2-fsm-edge-line"></div>
+                <div class="s2-fsm-edge-label">服务完成回传</div>
+                <div class="s2-fsm-arrow-head">▶</div>
+              </div>
+              <div class="s2-fsm-node s2-fsm-end">
+                <div class="s2-fsm-name">已完成</div>
+                <div class="s2-fsm-code">COMPLETED</div>
+              </div>
+            </div>
+
+            <!-- 终态区 -->
+            <div class="s2-fsm-terminals">
+              <div class="s2-fsm-terminal-label">↓ 任意节点均可流转至终态</div>
+              <div class="s2-fsm-terminal-row">
+                <div class="s2-fsm-term">
+                  <div class="s2-fsm-term-name">已取消</div>
+                  <div class="s2-fsm-term-code">CANCELLED</div>
+                  <div class="s2-fsm-term-by">用户主动取消</div>
+                </div>
+                <div class="s2-fsm-term">
+                  <div class="s2-fsm-term-name">已关闭</div>
+                  <div class="s2-fsm-term-code">CLOSED</div>
+                  <div class="s2-fsm-term-by">系统超时/人工关闭</div>
+                </div>
+                <div class="s2-fsm-term">
+                  <div class="s2-fsm-term-name">异常挂起</div>
+                  <div class="s2-fsm-term-code">SUSPENDED</div>
+                  <div class="s2-fsm-term-by">供应商异常/人工介入</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2: 子状态扩展 -->
+        <div class="s2-block">
+          <div class="s2-block-title">🔌 STEP 2 · 类型差异化子状态（各类型在骨架节点内扩展）</div>
+          <div class="s2-desc">骨架节点对外统一可见，每种服务类型可在骨架节点内部注册<span class="hl2">私有子状态序列</span>。引擎按 service_type 路由，子状态变更不影响骨架枚举，新增类型不改引擎代码。</div>
+
+          <!-- 骨架节点 + 各类型展开 -->
+          <div class="s2-ext2-wrap">
+            <!-- 骨架行 -->
+            <div class="s2-ext2-header">
+              <div class="s2-ext2-axis">骨架节点</div>
+              <div class="s2-ext2-col">受理中 · PROCESSING</div>
+              <div class="s2-ext2-col">履约中 · FULFILLING</div>
+            </div>
+            <div class="s2-ext2-row">
+              <div class="s2-ext2-type">🔵 特药</div>
+              <div class="s2-ext2-subs">
+                <div class="s2-sub-chip">待处方审核</div>
+                <div class="s2-sub-chip">处方已审核</div>
+                <div class="s2-sub-chip">待药品配送</div>
+              </div>
+              <div class="s2-ext2-subs">
+                <div class="s2-sub-chip">配送中</div>
+                <div class="s2-sub-chip">已签收</div>
+              </div>
+            </div>
+            <div class="s2-ext2-row">
+              <div class="s2-ext2-type">🟢 绿通</div>
+              <div class="s2-ext2-subs">
+                <div class="s2-sub-chip">待医院确认</div>
+                <div class="s2-sub-chip">已预约就诊</div>
+              </div>
+              <div class="s2-ext2-subs">
+                <div class="s2-sub-chip">待陪诊确认</div>
+                <div class="s2-sub-chip">陪诊进行中</div>
+                <div class="s2-sub-chip">就诊已结束</div>
+              </div>
+            </div>
+            <div class="s2-ext2-row">
+              <div class="s2-ext2-type">🟡 护理</div>
+              <div class="s2-ext2-subs">
+                <div class="s2-sub-chip">待护士接单</div>
+                <div class="s2-sub-chip">护士已接单</div>
+              </div>
+              <div class="s2-ext2-subs">
+                <div class="s2-sub-chip">护士已上门</div>
+                <div class="s2-sub-chip">服务进行中</div>
+              </div>
+            </div>
+            <div class="s2-ext2-row">
+              <div class="s2-ext2-type">🔴 采血</div>
+              <div class="s2-ext2-subs">
+                <div class="s2-sub-chip">待采样包寄出</div>
+              </div>
+              <div class="s2-ext2-subs">
+                <div class="s2-sub-chip">采样包已寄出</div>
+                <div class="s2-sub-chip">样本回寄中</div>
+                <div class="s2-sub-chip">实验室检测中</div>
+              </div>
+            </div>
+          </div>
+          <div class="s2-note" style="margin-top:12px">子状态存储在 current_sub_status 字段；主表查询走骨架状态索引，详情页再展示子状态进度</div>
+        </div>
+
+        <!-- STEP 3: 四源触发 -->
+        <div class="s2-block">
+          <div class="s2-block-title">⚡ STEP 3 · 四类触发源统一汇入状态机引擎</div>
+          <div class="s2-desc">所有状态变更来源都封装为<span class="hl2">StateChangeEvent（状态变更事件）</span>，四路并行汇入同一个引擎入口，引擎统一做合法性校验、幂等控制、流转执行、审计写入。</div>
+          <div class="s2-trigger-wrap">
+            <div class="s2-trigger-sources">
+              <div class="s2-trigger-src s2-tsrc-blue">
+                <div class="s2-tsrc-icon">👤</div>
+                <div class="s2-tsrc-name">用户操作</div>
+                <div class="s2-tsrc-eg">提交 / 取消 / 确认完成</div>
+              </div>
+              <div class="s2-trigger-src s2-tsrc-green">
+                <div class="s2-tsrc-icon">⚙️</div>
+                <div class="s2-tsrc-name">系统自动</div>
+                <div class="s2-tsrc-eg">超时关闭 / 定时检查</div>
+              </div>
+              <div class="s2-trigger-src s2-tsrc-purple">
+                <div class="s2-tsrc-icon">📡</div>
+                <div class="s2-tsrc-name">三方供应商回调</div>
+                <div class="s2-tsrc-eg">服务完成 / 异常反馈</div>
+              </div>
+              <div class="s2-trigger-src s2-tsrc-orange">
+                <div class="s2-tsrc-icon">🛠️</div>
+                <div class="s2-tsrc-name">人工后台干预</div>
+                <div class="s2-tsrc-eg">客服强制流转 / 修复异常</div>
+              </div>
+            </div>
+            <div class="s2-trigger-arrows">
+              <div class="s2-trigger-arr">↓</div>
+              <div class="s2-trigger-arr">↓</div>
+              <div class="s2-trigger-arr">↓</div>
+              <div class="s2-trigger-arr">↓</div>
+            </div>
+            <div class="s2-trigger-engine">
+              <div class="s2-engine-title">🔁 StateMachineEngine · 统一引擎入口</div>
+              <div class="s2-engine-steps">
+                <div class="s2-engine-step">① 幂等校验<div class="s2-engine-step-sub">防重复提交</div></div>
+                <div class="s2-engine-step-arrow">→</div>
+                <div class="s2-engine-step">② 合法性校验<div class="s2-engine-step-sub">查流转规则表</div></div>
+                <div class="s2-engine-step-arrow">→</div>
+                <div class="s2-engine-step">③ 执行流转<div class="s2-engine-step-sub">更新主表状态</div></div>
+                <div class="s2-engine-step-arrow">→</div>
+                <div class="s2-engine-step">④ 写审计日志<div class="s2-engine-step-sub">记录来源/操作人</div></div>
+                <div class="s2-engine-step-arrow">→</div>
+                <div class="s2-engine-step s2-engine-step-last">⑤ 发布领域事件<div class="s2-engine-step-sub">异步触发后续动作</div></div>
+              </div>
+            </div>
+            <div class="s2-trigger-arrows s2-trigger-arrows-down">
+              <div class="s2-trigger-arr s2-arr-down">↓</div>
+            </div>
+            <div class="s2-trigger-outputs">
+              <div class="s2-output-item">📬 消息通知推送</div>
+              <div class="s2-output-item">🔌 供应商对接触发</div>
+              <div class="s2-output-item">📊 数据统计上报</div>
+              <div class="s2-output-item">⏱️ SLA 计时记录</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 4: 代码实现 -->
+        <div class="s2-block">
+          <div class="s2-block-title">🏗️ STEP 4 · 代码层：策略模式 + 状态模式 四层拆分</div>
+          <div class="s2-impl-grid">
+            <div class="s2-impl-card">
+              <div class="s2-impl-title">① StateMachineEngine</div>
+              <div class="s2-impl-role">核心引擎（唯一入口）</div>
+              <div class="s2-impl-desc">接收 StateChangeEvent，完成幂等 → 规则校验 → 执行 transition → 写历史 → 发布事件的完整流程。所有触发源都调用此入口，不允许绕过。</div>
+            </div>
+            <div class="s2-impl-card">
+              <div class="s2-impl-title">② TransitionConfigLoader</div>
+              <div class="s2-impl-role">流转规则加载器</div>
+              <div class="s2-impl-desc">从 DB 流转规则配置表加载：<code>service_type + from_status + event → to_status + guard条件 + hook列表</code>。规则热更新，无需重启服务即可调整流转逻辑。</div>
+            </div>
+            <div class="s2-impl-card">
+              <div class="s2-impl-title">③ ServiceTypeHandler&lt;T&gt;</div>
+              <div class="s2-impl-role">类型策略接口（策略模式）</div>
+              <div class="s2-impl-desc">每种服务类型（特药/绿通/护理/采血）各实现一个 Handler，注册该类型的子状态序列与差异化前后置钩子。引擎按 service_type 路由分发，互不干扰。</div>
+            </div>
+            <div class="s2-impl-card">
+              <div class="s2-impl-title">④ StateEventListener</div>
+              <div class="s2-impl-role">后置异步监听（观察者模式）</div>
+              <div class="s2-impl-desc">监听引擎发布的领域事件，异步处理：消息推送、供应商通知、SLA 计时、BI 上报等。与主流程完全解耦，新增后置动作无需修改引擎代码。</div>
+            </div>
+          </div>
+          <div class="s2-note" style="margin-top:14px">新增服务类型只需：实现 ServiceTypeHandler 接口 + 在配置表中录入流转规则，引擎代码零改动</div>
+        </div>
+
+        <!-- 收益 -->
+        <div class="s2-block s2-summary">
+          <div style="display:flex; gap:28px; flex-wrap:wrap;">
+            <div class="s1-metric"><span class="s1-metric-val s2-val">统一骨架</span><span class="s1-metric-label">全类型状态横向可比</span></div>
+            <div class="s1-metric"><span class="s1-metric-val s2-val">扩展零侵入</span><span class="s1-metric-label">新增类型不改引擎</span></div>
+            <div class="s1-metric"><span class="s1-metric-val s2-val">四源统一入口</span><span class="s1-metric-label">杜绝绕过校验直改状态</span></div>
+            <div class="s1-metric"><span class="s1-metric-val s2-val">规则热更新</span><span class="s1-metric-label">流转逻辑配置化可调</span></div>
+            <div class="s1-metric"><span class="s1-metric-val s2-val">完整审计链</span><span class="s1-metric-label">每次流转可溯源回放</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="sol-connector">
+      <div class="connector-line"><div class="connector-line-inner"></div></div>
+      <div class="connector-space"></div>
+    </div>
+
+    <!-- S3 -->
+    <div class="sol-row s3" style="align-items:flex-start">
+      <div class="sol-label" style="min-height:60px">
+        <div class="sol-label-tag">Solution 03 · 供应商网关</div>
+        <div class="sol-label-title">统一供应商接入网关</div>
+      </div>
+      <div class="sol-steps" style="flex-direction:column; align-items:stretch; gap:0; padding:0;">
+
+        <!-- 根因 -->
+        <div class="s3-block">
+          <div class="s3-block-title">⚠️ 根因：接一家供应商 = 从头造一遍轮子</div>
+          <div class="s3-pain-grid">
+            <div class="s3-pain-item"><div class="s3-pain-icon">🔐</div><div class="s3-pain-text"><b>鉴权/签名</b>：每家格式不同（HMAC / OAuth / 自定义），各写各的，散落在业务代码里</div></div>
+            <div class="s3-pain-item"><div class="s3-pain-icon">📤</div><div class="s3-pain-text"><b>推单接口</b>：字段名、数据格式、协议（REST/SOAP）各异，转换逻辑重复堆叠</div></div>
+            <div class="s3-pain-item"><div class="s3-pain-icon">📥</div><div class="s3-pain-text"><b>回调接收</b>：每家回调地址不同、格式不同，各自解析、各自验签，没有统一入口</div></div>
+            <div class="s3-pain-item"><div class="s3-pain-icon">🗺️</div><div class="s3-pain-text"><b>状态码映射</b>：供应商返回自己的状态码，每次都要手写 Map 映射到内部骨架状态</div></div>
+            <div class="s3-pain-item"><div class="s3-pain-icon">♻️</div><div class="s3-pain-text"><b>重试/幂等/限流</b>：超时重试、防重复回调、QPS 限制，每家各写一遍，质量参差不齐</div></div>
+            <div class="s3-pain-item"><div class="s3-pain-icon">📊</div><div class="s3-pain-text"><b>监控盲区</b>：供应商调用耗时、失败率、回调延迟无统一观测，出问题靠日志捞针</div></div>
+          </div>
+        </div>
+
+        <div style="text-align:center; padding:10px 0; color:#21262d; font-size:20px;">↓ 网关分层设计</div>
+
+        <!-- STEP 1: 网关整体架构 -->
+        <div class="s3-block">
+          <div class="s3-block-title">🏗️ STEP 1 · 网关整体分层架构</div>
+          <div class="s3-desc">网关分为<span class="hl3">三层</span>：对上屏蔽供应商差异（业务层只感知抽象接口），对下适配各家协议（每家一个 Adapter），中间承载所有通用能力（鉴权/重试/限流/日志）。</div>
+          <div class="s3-arch-wrap">
+            <!-- 业务层 -->
+            <div class="s3-arch-layer s3-layer-biz">
+              <div class="s3-arch-layer-label">业务层（不感知供应商差异）</div>
+              <div class="s3-arch-layer-nodes">
+                <div class="s3-arch-node s3-node-biz">特药服务</div>
+                <div class="s3-arch-node s3-node-biz">绿通服务</div>
+                <div class="s3-arch-node s3-node-biz">护理服务</div>
+                <div class="s3-arch-node s3-node-biz">采血服务</div>
+              </div>
+            </div>
+            <div class="s3-arch-arr-row">
+              <div class="s3-arch-arr">↓ 调用统一接口 VendorGateway.dispatch()</div>
+            </div>
+            <!-- 网关核心层 -->
+            <div class="s3-arch-layer s3-layer-gw">
+              <div class="s3-arch-layer-label">🔁 网关核心层（通用能力）</div>
+              <div class="s3-arch-layer-nodes s3-gw-nodes">
+                <div class="s3-gw-cap">🔐 鉴权/签名</div>
+                <div class="s3-gw-cap">♻️ 重试策略</div>
+                <div class="s3-gw-cap">⏱️ 超时控制</div>
+                <div class="s3-gw-cap">🔒 幂等保障</div>
+                <div class="s3-gw-cap">🚦 限流熔断</div>
+                <div class="s3-gw-cap">📝 请求日志</div>
+                <div class="s3-gw-cap">🗺️ 状态码映射</div>
+                <div class="s3-gw-cap">📊 指标采集</div>
+              </div>
+            </div>
+            <div class="s3-arch-arr-row">
+              <div class="s3-arch-arr">↓ 路由至对应 Adapter</div>
+            </div>
+            <!-- 适配器层 -->
+            <div class="s3-arch-layer s3-layer-adapter">
+              <div class="s3-arch-layer-label">适配器层（各供应商独立 Adapter）</div>
+              <div class="s3-arch-layer-nodes">
+                <div class="s3-arch-node s3-node-adapter">供应商 A<div class="s3-node-sub2">Adapter</div></div>
+                <div class="s3-arch-node s3-node-adapter">供应商 B<div class="s3-node-sub2">Adapter</div></div>
+                <div class="s3-arch-node s3-node-adapter">供应商 C<div class="s3-node-sub2">Adapter</div></div>
+                <div class="s3-arch-node s3-node-adapter-new">新供应商 +<div class="s3-node-sub2">只需新增 Adapter</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2: 推单+回调双向流程 -->
+        <div class="s3-block">
+          <div class="s3-block-title">🔄 STEP 2 · 推单 & 回调统一流程（与状态机联动）</div>
+          <div class="s3-desc">网关有两条核心链路：<span class="hl3">推单链路</span>（主动调用供应商）和<span class="hl3">回调链路</span>（被动接收供应商通知），两条链路的终点都汇入 Solution 02 的状态机引擎，触发内部骨架状态流转。</div>
+
+          <div class="s3-dual-flow">
+            <!-- 推单 -->
+            <div class="s3-flow-col">
+              <div class="s3-flow-col-title">📤 推单链路（主动调用）</div>
+              <div class="s3-flow-step s3-fstep-biz">
+                <div class="s3-fstep-icon">🏢</div>
+                <div class="s3-fstep-content">
+                  <div class="s3-fstep-name">业务层发起推单</div>
+                  <div class="s3-fstep-desc">传入 ApplyId + ServiceType，不关心具体供应商</div>
+                </div>
+              </div>
+              <div class="s3-flow-down">↓</div>
+              <div class="s3-flow-step s3-fstep-gw">
+                <div class="s3-fstep-icon">🔀</div>
+                <div class="s3-fstep-content">
+                  <div class="s3-fstep-name">网关路由选择供应商</div>
+                  <div class="s3-fstep-desc">按 service_type + 路由策略（主备/分流）选出目标供应商</div>
+                </div>
+              </div>
+              <div class="s3-flow-down">↓</div>
+              <div class="s3-flow-step s3-fstep-gw">
+                <div class="s3-fstep-icon">🔐</div>
+                <div class="s3-fstep-content">
+                  <div class="s3-fstep-name">通用能力处理</div>
+                  <div class="s3-fstep-desc">鉴权签名 → 参数转换 → 超时设置 → 请求日志</div>
+                </div>
+              </div>
+              <div class="s3-flow-down">↓</div>
+              <div class="s3-flow-step s3-fstep-adapter">
+                <div class="s3-fstep-icon">🔌</div>
+                <div class="s3-fstep-content">
+                  <div class="s3-fstep-name">Adapter 调用供应商接口</div>
+                  <div class="s3-fstep-desc">各家格式差异在此层处理，外部无感知</div>
+                </div>
+              </div>
+              <div class="s3-flow-down">↓</div>
+              <div class="s3-flow-step s3-fstep-gw">
+                <div class="s3-fstep-icon">♻️</div>
+                <div class="s3-fstep-content">
+                  <div class="s3-fstep-name">失败重试 / 熔断判断</div>
+                  <div class="s3-fstep-desc">指数退避重试，达到阈值触发熔断，记录失败日志</div>
+                </div>
+              </div>
+              <div class="s3-flow-down">↓</div>
+              <div class="s3-flow-step s3-fstep-sm">
+                <div class="s3-fstep-icon">⚙️</div>
+                <div class="s3-fstep-content">
+                  <div class="s3-fstep-name">结果写入 → 触发状态机</div>
+                  <div class="s3-fstep-desc">保存供应商交互记录，发出 VENDOR 事件驱动骨架状态流转</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="s3-dual-divider"></div>
+
+            <!-- 回调 -->
+            <div class="s3-flow-col">
+              <div class="s3-flow-col-title">📥 回调链路（被动接收）</div>
+              <div class="s3-flow-step s3-fstep-adapter">
+                <div class="s3-fstep-icon">📡</div>
+                <div class="s3-fstep-content">
+                  <div class="s3-fstep-name">统一回调接收入口</div>
+                  <div class="s3-fstep-desc">/gateway/callback/{vendorCode} 单一 URL 接收所有供应商回调</div>
+                </div>
+              </div>
+              <div class="s3-flow-down">↓</div>
+              <div class="s3-flow-step s3-fstep-gw">
+                <div class="s3-fstep-icon">🔐</div>
+                <div class="s3-fstep-content">
+                  <div class="s3-fstep-name">验签 & 防重放</div>
+                  <div class="s3-fstep-desc">按 vendorCode 加载验签规则，校验签名 + 幂等 key 去重</div>
+                </div>
+              </div>
+              <div class="s3-flow-down">↓</div>
+              <div class="s3-flow-step s3-fstep-adapter">
+                <div class="s3-fstep-icon">🔌</div>
+                <div class="s3-fstep-content">
+                  <div class="s3-fstep-name">Adapter 解析回调报文</div>
+                  <div class="s3-fstep-desc">各家格式差异在此层解析，输出标准 VendorCallbackEvent</div>
+                </div>
+              </div>
+              <div class="s3-flow-down">↓</div>
+              <div class="s3-flow-step s3-fstep-gw">
+                <div class="s3-fstep-icon">🗺️</div>
+                <div class="s3-fstep-content">
+                  <div class="s3-fstep-name">供应商状态码 → 内部事件映射</div>
+                  <div class="s3-fstep-desc">查供应商状态映射配置表，翻译为 StateChangeEvent</div>
+                </div>
+              </div>
+              <div class="s3-flow-down">↓</div>
+              <div class="s3-flow-step s3-fstep-gw">
+                <div class="s3-fstep-icon">💾</div>
+                <div class="s3-fstep-content">
+                  <div class="s3-fstep-name">原始回调报文持久化</div>
+                  <div class="s3-fstep-desc">存入三方交互记录表，保留原始数据供审计和排查</div>
+                </div>
+              </div>
+              <div class="s3-flow-down">↓</div>
+              <div class="s3-flow-step s3-fstep-sm">
+                <div class="s3-fstep-icon">⚙️</div>
+                <div class="s3-fstep-content">
+                  <div class="s3-fstep-name">调用状态机引擎（VENDOR 触发源）</div>
+                  <div class="s3-fstep-desc">注入 operator_type=VENDOR，引擎完成合法性校验后执行骨架状态流转</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 3: 状态码映射机制 -->
+        <div class="s3-block">
+          <div class="s3-block-title">🗺️ STEP 3 · 供应商状态码 → 内部骨架状态映射机制</div>
+          <div class="s3-desc">这是网关与状态机的<span class="hl3">关键衔接点</span>。每家供应商有自己的状态码，网关通过配置化映射表将其翻译为统一的内部 StateChangeEvent，业务层和状态机完全不感知供应商原始状态码。</div>
+          <div class="s3-mapping-wrap">
+            <div class="s3-mapping-header">
+              <div>供应商</div><div>供应商原始状态码</div><div>含义</div><div>→ 映射为内部事件</div><div>→ 骨架状态流转</div>
+            </div>
+            <div class="s3-mapping-row">
+              <div class="s3-vendor-tag s3-va">供应商 A</div><div class="s3-code">ORDER_ACCEPTED</div><div class="s3-meaning">订单已接受</div>
+              <div class="s3-event-tag">VENDOR_ACCEPTED</div><div class="s3-transit">SUBMITTED → PROCESSING</div>
+            </div>
+            <div class="s3-mapping-row">
+              <div class="s3-vendor-tag s3-va">供应商 A</div><div class="s3-code">SERVICE_DONE</div><div class="s3-meaning">服务完成</div>
+              <div class="s3-event-tag">VENDOR_COMPLETED</div><div class="s3-transit">FULFILLING → COMPLETED</div>
+            </div>
+            <div class="s3-mapping-row">
+              <div class="s3-vendor-tag s3-vb">供应商 B</div><div class="s3-code">status=2</div><div class="s3-meaning">处理中</div>
+              <div class="s3-event-tag">VENDOR_PROCESSING</div><div class="s3-transit">SUBMITTED → PROCESSING</div>
+            </div>
+            <div class="s3-mapping-row">
+              <div class="s3-vendor-tag s3-vb">供应商 B</div><div class="s3-code">status=9</div><div class="s3-meaning">已完成</div>
+              <div class="s3-event-tag">VENDOR_COMPLETED</div><div class="s3-transit">FULFILLING → COMPLETED</div>
+            </div>
+            <div class="s3-mapping-row">
+              <div class="s3-vendor-tag s3-vc">供应商 C</div><div class="s3-code">EXCEPTION</div><div class="s3-meaning">异常</div>
+              <div class="s3-event-tag">VENDOR_EXCEPTION</div><div class="s3-transit">ANY → SUSPENDED</div>
+            </div>
+            <div class="s3-mapping-note">↑ 映射关系存储在「供应商状态映射配置表」，新增供应商只需录入映射规则，无需改代码</div>
+          </div>
+        </div>
+
+        <!-- STEP 4: 供应商来源机制 -->
+        <div class="s3-block">
+          <div class="s3-block-title">🔗 STEP 4 · 供应商来源机制（渠道 → 服务包 → 供应商绑定链路）</div>
+          <div class="s3-desc">供应商并非运行时动态路由选出，而是<span class="hl3">在用户激活权益卡时已由渠道配置链路静态决定</span>。申请单创建时直接从服务包继承供应商绑定，网关只需按申请单上的供应商标识分发即可，无需任何路由判断逻辑。</div>
+
+          <!-- 绑定链路图 -->
+          <div class="s3-binding-wrap">
+            <div class="s3-binding-label">权益激活时的供应商绑定链路</div>
+            <div class="s3-binding-chain">
+              <div class="s3-binding-node s3-bn-channel">
+                <div class="s3-bn-icon">🏦</div>
+                <div class="s3-bn-name">渠道</div>
+                <div class="s3-bn-desc">保险公司 / 银行 / 平台等</div>
+              </div>
+              <div class="s3-binding-edge">
+                <div class="s3-binding-edge-line"></div>
+                <div class="s3-binding-edge-label">配置</div>
+                <div class="s3-binding-edge-arr">▶</div>
+              </div>
+              <div class="s3-binding-node s3-bn-pack">
+                <div class="s3-bn-icon">📦</div>
+                <div class="s3-bn-name">服务包</div>
+                <div class="s3-bn-desc">包含服务类型 + 指定供应商</div>
+              </div>
+              <div class="s3-binding-edge">
+                <div class="s3-binding-edge-line"></div>
+                <div class="s3-binding-edge-label">用户激活</div>
+                <div class="s3-binding-edge-arr">▶</div>
+              </div>
+              <div class="s3-binding-node s3-bn-card">
+                <div class="s3-bn-icon">💳</div>
+                <div class="s3-bn-name">权益卡</div>
+                <div class="s3-bn-desc">绑定了服务包 & 供应商信息</div>
+              </div>
+              <div class="s3-binding-edge">
+                <div class="s3-binding-edge-line"></div>
+                <div class="s3-binding-edge-label">发起申请</div>
+                <div class="s3-binding-edge-arr">▶</div>
+              </div>
+              <div class="s3-binding-node s3-bn-apply">
+                <div class="s3-bn-icon">📋</div>
+                <div class="s3-bn-name">申请单</div>
+                <div class="s3-bn-desc">创建时直接写入 vendor_code</div>
+              </div>
+              <div class="s3-binding-edge">
+                <div class="s3-binding-edge-line"></div>
+                <div class="s3-binding-edge-label">调用</div>
+                <div class="s3-binding-edge-arr">▶</div>
+              </div>
+              <div class="s3-binding-node s3-bn-gw">
+                <div class="s3-bn-icon">🔁</div>
+                <div class="s3-bn-name">供应商网关</div>
+                <div class="s3-bn-desc">按 vendor_code 直接分发</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 说明 & 例子 -->
+          <div class="s3-binding-notes">
+            <div class="s3-binding-note-item">
+              <div class="s3-bni-title">📌 网关侧的变化</div>
+              <div class="s3-bni-desc">网关不再需要路由决策逻辑，入参直接携带 <code>vendor_code</code>，网关根据此字段加载对应 Adapter 及其配置，分发调用。</div>
+            </div>
+            <div class="s3-binding-note-item">
+              <div class="s3-bni-title">📌 同类型不同供应商怎么处理</div>
+              <div class="s3-bni-desc">同一服务类型可存在多个服务包，每个服务包绑定不同供应商。用户持 A 渠道的权益卡走供应商 X，持 B 渠道的走供应商 Y，决策在激活时完成，与网关无关。</div>
+            </div>
+            <div class="s3-binding-note-item">
+              <div class="s3-bni-title">📌 新增供应商的影响面</div>
+              <div class="s3-bni-desc">渠道侧：在服务包中配置新供应商 ID。网关侧：新增一个 Adapter + 录入供应商基础配置及状态映射配置。业务代码和状态机：零改动。</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 5: 通用能力 & DB -->
+        <div class="s3-block">
+          <div class="s3-block-title">⚙️ STEP 5 · 通用基础能力 & 配置化管理</div>
+          <div class="s3-caps-grid">
+            <div class="s3-cap-card">
+              <div class="s3-cap-title">🔐 鉴权 & 签名</div>
+              <div class="s3-cap-desc">各家鉴权方式（HMAC/OAuth2/API-KEY）封装为 AuthStrategy，按供应商加载，网关核心层统一调用</div>
+            </div>
+            <div class="s3-cap-card">
+              <div class="s3-cap-title">♻️ 重试 & 熔断</div>
+              <div class="s3-cap-desc">指数退避重试（可配置次数/间隔），失败率超阈值自动熔断，熔断期间直接走备用供应商</div>
+            </div>
+            <div class="s3-cap-card">
+              <div class="s3-cap-title">🔒 幂等控制</div>
+              <div class="s3-cap-desc">推单以 apply_id + vendor_code 为幂等 key 防重，回调以供应商流水号去重，Redis 存储幂等状态</div>
+            </div>
+            <div class="s3-cap-card">
+              <div class="s3-cap-title">📊 可观测性</div>
+              <div class="s3-cap-desc">每次调用记录耗时、状态码、回调延迟，暴露 Metrics 接口，统一监控看板实时观测各供应商健康状态</div>
+            </div>
+          </div>
+          <div class="s3-db-row">
+            <div class="s3-db-mini">
+              <div class="s3-db-mini-name">供应商基础配置表</div>
+              <div class="s3-db-mini-fields">vendor_code · 接口地址 · 鉴权方式 · 超时配置 · 路由权重 · 启用状态</div>
+            </div>
+            <div class="s3-db-mini">
+              <div class="s3-db-mini-name">供应商状态映射配置表</div>
+              <div class="s3-db-mini-fields">vendor_code · vendor_status_code · internal_event · 描述</div>
+            </div>
+            <div class="s3-db-mini">
+              <div class="s3-db-mini-name">三方交互记录表（归网关）</div>
+              <div class="s3-db-mini-fields">apply_id · vendor_code · direction(推单/回调) · raw_request · raw_response · status · created_time</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 收益 -->
+        <div class="s3-block s3-summary">
+          <div style="display:flex; gap:28px; flex-wrap:wrap;">
+            <div class="s1-metric"><span class="s1-metric-val s3-val">接入成本 ↓80%</span><span class="s1-metric-label">新供应商只需一个 Adapter</span></div>
+            <div class="s1-metric"><span class="s1-metric-val s3-val">零散逻辑归一</span><span class="s1-metric-label">鉴权/重试/幂等统一维护</span></div>
+            <div class="s1-metric"><span class="s1-metric-val s3-val">状态机无缝联动</span><span class="s1-metric-label">回调统一翻译为内部事件</span></div>
+            <div class="s1-metric"><span class="s1-metric-val s3-val">供应商可热切换</span><span class="s1-metric-label">主备/分流配置化零代码</span></div>
+            <div class="s1-metric"><span class="s1-metric-val s3-val">全链路可观测</span><span class="s1-metric-label">每次交互有迹可查</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 目标架构图 -->
+<div class="section">
+  <div class="section-title">目标架构总览</div>
+  <div class="arch">
+
+    <div class="arch-label">业务入口层</div>
+    <div class="arch-row">
+      <div class="arch-node blue">服务申请 API</div>
+      <div class="arch-node blue">申请查询 API</div>
+      <div class="arch-node blue">状态变更 API</div>
+      <div class="arch-node blue">回调接收 API</div>
+    </div>
+
+    <hr class="arch-divider">
+    <div class="arch-arrow-row">
+      <div class="arch-arrow">↓</div><div class="arch-arrow">↓</div><div class="arch-arrow">↓</div><div class="arch-arrow">↓</div>
+    </div>
+
+    <div class="arch-label">核心领域层</div>
+    <div class="arch-row">
+      <div class="arch-node green">申请单服务</div>
+      <div class="arch-node yellow">统一状态机引擎</div>
+      <div class="arch-node red">供应商接入网关</div>
+      <div class="arch-node arch-node-purple">动态表单渲染引擎</div>
+    </div>
+
+    <hr class="arch-divider">
+    <div class="arch-arrow-row">
+      <div class="arch-arrow">↓</div><div class="arch-arrow">↓</div><div class="arch-arrow">↓</div><div class="arch-arrow">↓</div>
+    </div>
+
+    <div class="arch-label">基础设施层</div>
+
+    <!-- 配置元数据子区块 -->
+    <div class="arch-infra-section">
+      <div class="arch-infra-label">📐 配置元数据（驱动上层业务逻辑）</div>
+      <div class="arch-infra-meta-grid">
+        <div class="arch-infra-meta-col arch-imc-0">
+          <div class="arch-imc-header">
+            <span class="arch-imc-num">Layer 0</span>
+            <span class="arch-imc-name">履约项</span>
+          </div>
+          <div class="arch-imc-desc">原子字段定义<br>跨场景复用单元</div>
+          <div class="arch-imc-tables">
+            <div class="arch-imc-table">履约项配置表</div>
+          </div>
+        </div>
+        <div class="arch-infra-meta-arr">→<div class="arch-infra-meta-arr-label">组合</div></div>
+        <div class="arch-infra-meta-col arch-imc-1">
+          <div class="arch-imc-header">
+            <span class="arch-imc-num">Layer 1</span>
+            <span class="arch-imc-name">动态表单</span>
+          </div>
+          <div class="arch-imc-desc">履约项集合<br>含场景校验规则</div>
+          <div class="arch-imc-tables">
+            <div class="arch-imc-table">动态表单表</div>
+            <div class="arch-imc-table">表单-履约项关联表</div>
+          </div>
+        </div>
+        <div class="arch-infra-meta-arr">→<div class="arch-infra-meta-arr-label">关联</div></div>
+        <div class="arch-infra-meta-col arch-imc-2">
+          <div class="arch-imc-header">
+            <span class="arch-imc-num">Layer 2</span>
+            <span class="arch-imc-name">服务项</span>
+          </div>
+          <div class="arch-imc-desc">可申请的服务定义<br>绑定表单 + 服务类型</div>
+          <div class="arch-imc-tables">
+            <div class="arch-imc-table">服务项配置表</div>
+          </div>
+        </div>
+        <div class="arch-infra-meta-arr">→<div class="arch-infra-meta-arr-label">打包</div></div>
+        <div class="arch-infra-meta-col arch-imc-3">
+          <div class="arch-imc-header">
+            <span class="arch-imc-num">Layer 3</span>
+            <span class="arch-imc-name">服务包</span>
+          </div>
+          <div class="arch-imc-desc">服务项集合<br>绑定供应商 + 渠道</div>
+          <div class="arch-imc-tables">
+            <div class="arch-imc-table">服务包配置表</div>
+            <div class="arch-imc-table">包-服务项关联表</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <hr class="arch-divider" style="margin:10px 0">
+
+    <!-- 运行时数据子区块 -->
+    <div class="arch-infra-section">
+      <div class="arch-infra-label">🗄️ 运行时数据（申请单 & 状态 & 交互记录）</div>
+      <div class="arch-row" style="flex-wrap:wrap; gap:8px; margin-top:8px;">
+        <div class="arch-node gray">申请主表（瘦身）</div>
+        <div class="arch-node gray">申请详情扩展表</div>
+        <div class="arch-node gray">类型扩展字段表</div>
+        <div class="arch-node gray">履约历史状态表</div>
+        <div class="arch-node gray">状态流转规则配置表</div>
+        <div class="arch-node gray">供应商配置 &amp; 映射表</div>
+        <div class="arch-node gray">三方交互记录表</div>
+        <div class="arch-node gray">图片证明材料表</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 履约项防膨胀设计 -->
+<div class="section">
+  <div class="section-title">配置元数据层 · 履约项防膨胀设计</div>
+  <div class="antibloat-wrap">
+
+    <!-- 四大膨胀场景 -->
+    <div class="ab-block">
+      <div class="ab-block-title">⚠️ 履约项膨胀的三个根因</div>
+      <div class="ab-bloat-grid" style="grid-template-columns: repeat(3,1fr)">
+        <div class="ab-bloat-item">
+          <div class="ab-bloat-num">01</div>
+          <div class="ab-bloat-text">跨服务类型高度相似的履约项（姓名、手机号等）各自独立定义，没有复用</div>
+        </div>
+        <div class="ab-bloat-item">
+          <div class="ab-bloat-num">02</div>
+          <div class="ab-bloat-text">同一履约项在不同服务包/渠道下校验规则略有差异，衍生出大量相似变体</div>
+        </div>
+        <div class="ab-bloat-item">
+          <div class="ab-bloat-num">03</div>
+          <div class="ab-bloat-text">不同渠道/服务包为细微定制需求各自新建一次性专属履约项，长期累积无人清理</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 解法 -->
+    <div class="ab-block">
+      <div class="ab-block-title">✅ 防膨胀三板斧</div>
+      <div class="ab-sol-grid">
+
+        <div class="ab-sol-card">
+          <div class="ab-sol-icon">🧱</div>
+          <div class="ab-sol-title">原子化 + 复用机制</div>
+          <div class="ab-sol-desc">履约项定义与业务场景解耦，抽象为<strong>原子履约项</strong>（字段类型 + 基础校验），动态表单引用而非拷贝。同一"手机号"履约项可被特药、绿通、护理共用，修改一次全局生效。</div>
+          <div class="ab-sol-example">
+            <div class="ab-eg-label">示例</div>
+            <div class="ab-eg-row">
+              <div class="ab-eg-atom">原子项：手机号</div>
+              <div class="ab-eg-arrow">→ 引用</div>
+              <div class="ab-eg-forms">特药表单 · 绿通表单 · 护理表单</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ab-sol-card">
+          <div class="ab-sol-icon">🎛️</div>
+          <div class="ab-sol-title">校验规则与履约项分离</div>
+          <div class="ab-sol-desc">履约项只定义<strong>字段本质</strong>（类型、展示名），校验规则作为独立配置层附加在「动态表单引用关系」上，同一履约项可在不同表单里配置不同必填/正则/范围规则，无需为细微差异新建履约项变体。</div>
+          <div class="ab-sol-example">
+            <div class="ab-eg-label">示例</div>
+            <div class="ab-eg-row">
+              <div class="ab-eg-atom">原子项：就诊日期</div>
+              <div class="ab-eg-arrow">+规则</div>
+              <div class="ab-eg-forms">绿通：必填，不早于今天<br>护理：必填，未来7天内</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ab-sol-card">
+          <div class="ab-sol-icon">🗂️</div>
+          <div class="ab-sol-title">生命周期管理 + 引用计数</div>
+          <div class="ab-sol-desc">履约项维护引用计数，记录被哪些动态表单引用。<strong>引用数为 0</strong> 的履约项标记为「待归档」，定期审核后可安全下线。新建履约项前强制搜索相似项，系统提示复用建议，从入口遏制无效新增。</div>
+          <div class="ab-sol-example">
+            <div class="ab-eg-label">管控规则</div>
+            <div class="ab-eg-row" style="flex-wrap:wrap; gap:6px;">
+              <div class="ab-eg-rule">新建前必须搜索</div>
+              <div class="ab-eg-rule">引用数=0 → 待归档</div>
+              <div class="ab-eg-rule">下线需审批</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 四层依赖关系 -->
+    <div class="ab-block">
+      <div class="ab-block-title">🔗 四层配置依赖关系总览</div>
+      <div class="ab-dep-wrap">
+        <div class="ab-dep-row">
+          <div class="ab-dep-layer ab-dl-0">
+            <div class="ab-dl-num">Layer 0</div>
+            <div class="ab-dl-name">履约项</div>
+            <div class="ab-dl-fields">field_key · 字段类型 · 展示名 · 引用计数 · 状态(启用/归档)</div>
+          </div>
+          <div class="ab-dep-note">← 原子单元，跨场景复用，校验规则不在此定义</div>
+        </div>
+        <div class="ab-dep-conn">↓ 引用（含表单内校验规则配置）</div>
+        <div class="ab-dep-row">
+          <div class="ab-dep-layer ab-dl-1">
+            <div class="ab-dl-num">Layer 1</div>
+            <div class="ab-dl-name">动态表单</div>
+            <div class="ab-dl-fields">form_id · 表单名 · [履约项引用列表 + 各自校验规则 + 排序 + 是否必填]</div>
+          </div>
+          <div class="ab-dep-note">← 驱动前端渲染，同一履约项在不同表单可有不同校验</div>
+        </div>
+        <div class="ab-dep-conn">↓ 关联</div>
+        <div class="ab-dep-row">
+          <div class="ab-dep-layer ab-dl-2">
+            <div class="ab-dl-num">Layer 2</div>
+            <div class="ab-dl-name">服务项</div>
+            <div class="ab-dl-fields">service_item_id · 服务名称 · 服务类型 · 关联 form_id · 服务描述</div>
+          </div>
+          <div class="ab-dep-note">← 定义一个可被用户申请的具体服务</div>
+        </div>
+        <div class="ab-dep-conn">↓ 打包</div>
+        <div class="ab-dep-row">
+          <div class="ab-dep-layer ab-dl-3">
+            <div class="ab-dl-num">Layer 3</div>
+            <div class="ab-dl-name">服务包</div>
+            <div class="ab-dl-fields">package_id · 包名 · [服务项列表] · vendor_code · 渠道归属 · 有效期</div>
+          </div>
+          <div class="ab-dep-note">← 供应商在此绑定，渠道在此层配置给用户</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 预期收益 -->
+<div class="section">
+  <div class="section-title">预期收益</div>
+  <div class="result-grid">
+    <div class="result-item">
+      <div class="result-icon">⚡</div>
+      <div class="result-title">查询性能大幅提升</div>
+      <div class="result-desc">结构化索引字段替代全 JSON 扫描，高频列表查询耗时预期降低 80% 以上。</div>
+    </div>
+    <div class="result-item">
+      <div class="result-icon">🔀</div>
+      <div class="result-title">状态逻辑统一可控</div>
+      <div class="result-desc">公共骨架收拢共性流转，各类型差异节点清晰隔离，新增类型只需注册扩展点。</div>
+    </div>
+    <div class="result-item">
+      <div class="result-icon">🔌</div>
+      <div class="result-title">供应商接入标准化</div>
+      <div class="result-desc">单一网关承载所有交互，鉴权/重试/监控一次配置全局生效，供应商替换成本趋近于零。</div>
+    </div>
+    <div class="result-item">
+      <div class="result-icon">🧩</div>
+      <div class="result-title">代码复杂度显著下降</div>
+      <div class="result-desc">分散逻辑聚合归位，消除重复代码，单元测试覆盖率可大幅提升。</div>
+    </div>
+    <div class="result-item">
+      <div class="result-icon">📊</div>
+      <div class="result-title">可观测性全面增强</div>
+      <div class="result-desc">状态变更、供应商调用均有统一日志与监控，问题定位从小时级缩短至分钟级。</div>
+    </div>
+    <div class="result-item">
+      <div class="result-icon">🚀</div>
+      <div class="result-title">迭代效率持续提升</div>
+      <div class="result-desc">架构边界清晰，新业务类型、新供应商接入均可独立开发，互不干扰。</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
