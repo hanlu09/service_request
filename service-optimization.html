@@ -989,8 +989,8 @@
   <div class="problems">
     <div class="problem-card p1">
       <div class="problem-num">PROBLEM 01 · 性能</div>
-      <div class="problem-title">大 JSON 字段查询瓶颈</div>
-      <div class="problem-desc">申请表中直接存储完整用户服务信息 JSON，导致全表扫描、索引失效，随数据量增长查询耗时持续劣化。</div>
+      <div class="problem-title">大 JSON 字段读取性能劣化</div>
+      <div class="problem-desc">申请主表存储完整用户服务信息 JSON，读取时需加载整行数据、内存占用高；字段解析依赖应用层反序列化，无法按需取值；随数据体积增长，IO 与解析开销持续放大。</div>
     </div>
     <div class="problem-card p2">
       <div class="problem-num">PROBLEM 02 · 状态机</div>
@@ -1016,7 +1016,7 @@
     <div class="sol-row s1" style="align-items:flex-start">
       <div class="sol-label" style="min-height:60px">
         <div class="sol-label-tag">Solution 01 · 存储拆分</div>
-        <div class="sol-label-title">JSON 冷热数据分离 + 结构化索引</div>
+        <div class="sol-label-title">大 JSON 拆分 + 冷热数据分离</div>
       </div>
       <div class="sol-steps" style="flex-direction:column; align-items:stretch; gap:0; padding:0;">
 
@@ -1029,7 +1029,7 @@
           <div class="s1-table-row">
             <span class="tag-red">申请主表</span>
             <span>用户基本信息 + 申请服务信息 + 申请履约信息 + 各类型附加字段（全部堆进大 JSON）</span>
-            <span class="tag-warn">字段臃肿、索引失效、查询全表扫描</span>
+            <span class="tag-warn">整行读取内存高 · 解析开销大 · 无法按需取值</span>
           </div>
           <div class="s1-table-row">
             <span class="tag-gray">履约历史状态表</span>
@@ -1058,8 +1058,8 @@
           <div class="s1-step-row">
             <div class="s1-step-num">STEP 1</div>
             <div class="s1-step-content">
-              <div class="s1-step-title">申请主表瘦身 → 只留核心索引字段</div>
-              <div class="s1-step-desc">保留高频查询字段并全部建索引：<span class="hl">申请ID、用户ID、服务类型、申请状态、创建时间、更新时间、当前受理供应商ID</span>。其余字段全部迁出，主表单行宽度可降低 70% 以上，索引命中率显著提升。</div>
+              <div class="s1-step-title">申请主表瘦身 → 只保留核心高频字段</div>
+              <div class="s1-step-desc">将真正需要按需读取的核心字段保留在主表：<span class="hl">申请ID、用户ID、服务类型、申请状态、创建时间、更新时间、当前受理供应商ID</span>。其余字段全部迁出，单行数据体积可降低 70% 以上，每次读取的 IO 量与内存占用同比下降，列表场景无需加载任何冗余 JSON 内容。</div>
             </div>
           </div>
 
@@ -1955,8 +1955,8 @@
   <div class="result-grid">
     <div class="result-item">
       <div class="result-icon">⚡</div>
-      <div class="result-title">查询性能大幅提升</div>
-      <div class="result-desc">结构化索引字段替代全 JSON 扫描，高频列表查询耗时预期降低 80% 以上。</div>
+      <div class="result-title">读取性能与内存占用改善</div>
+      <div class="result-desc">主表单行体积大幅瘦身，列表场景 IO 量与内存占用同比降低；详情按需懒加载，彻底消除无意义的大 JSON 整体反序列化开销。</div>
     </div>
     <div class="result-item">
       <div class="result-icon">🔀</div>
