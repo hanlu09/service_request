@@ -1,0 +1,1461 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>endTime 续期调用链路分析报告</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, "PingFang SC", "Helvetica Neue", Arial, "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #f4f5f7;
+    color: #1f2329;
+    line-height: 1.7;
+    font-size: 14px;
+  }
+
+  /* ── Layout ── */
+  .page-wrapper {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  .sidebar {
+    width: 240px;
+    background: #fff;
+    border-right: 1px solid #e8e9eb;
+    padding: 24px 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+
+  .sidebar-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #8f959e;
+    padding: 0 16px 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .sidebar-item {
+    display: block;
+    padding: 6px 16px;
+    font-size: 13px;
+    color: #4e5969;
+    text-decoration: none;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+    cursor: pointer;
+  }
+  .sidebar-item:hover { background: #f0f4ff; color: #366ef4; }
+  .sidebar-item.active { background: #f0f4ff; color: #366ef4; border-left-color: #366ef4; font-weight: 500; }
+  .sidebar-item.level2 { padding-left: 28px; font-size: 12px; }
+
+  .main {
+    flex: 1;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 40px 48px 80px;
+  }
+
+  /* ── Doc Header ── */
+  .doc-header {
+    margin-bottom: 40px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid #e8e9eb;
+  }
+  .doc-header .breadcrumb {
+    font-size: 12px;
+    color: #8f959e;
+    margin-bottom: 12px;
+  }
+  .doc-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1f2329;
+    line-height: 1.4;
+    margin-bottom: 12px;
+  }
+  .doc-meta {
+    display: flex;
+    gap: 20px;
+    font-size: 12px;
+    color: #8f959e;
+  }
+
+  /* ── Section Headings ── */
+  .section {
+    margin-bottom: 40px;
+  }
+
+  h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1f2329;
+    margin: 36px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e8e9eb;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1f2329;
+    margin: 24px 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* ── Status Badges ── */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .badge-ok    { background: #e8f7ee; color: #1db454; }
+  .badge-fail  { background: #fff0f0; color: #f54a45; }
+  .badge-warn  { background: #fff7e6; color: #ff7d00; }
+  .badge-p0    { background: #ffece8; color: #f54a45; border: 1px solid #ffcfca; }
+  .badge-p1    { background: #fff8e6; color: #ff7d00; border: 1px solid #ffe699; }
+  .badge-p2    { background: #e8f7ee; color: #1db454; border: 1px solid #c4edcf; }
+
+  /* ── Info Cards ── */
+  .card {
+    background: #fff;
+    border: 1px solid #e8e9eb;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .card-header {
+    padding: 12px 16px;
+    background: #f7f8fa;
+    border-bottom: 1px solid #e8e9eb;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1f2329;
+    font-family: "SF Mono", "Fira Code", Consolas, monospace;
+  }
+
+  .card-body {
+    padding: 16px;
+  }
+
+  .field-row {
+    display: grid;
+    grid-template-columns: 88px 1fr;
+    gap: 8px 12px;
+    font-size: 13px;
+    padding: 6px 0;
+    border-bottom: 1px dashed #f0f1f3;
+    align-items: baseline;
+  }
+  .field-row:last-child { border-bottom: none; }
+
+  .field-label {
+    color: #8f959e;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .field-value {
+    color: #1f2329;
+    word-break: break-all;
+  }
+
+  code {
+    font-family: "SF Mono", "Fira Code", Consolas, monospace;
+    font-size: 12px;
+    background: #f0f4ff;
+    color: #366ef4;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .code-block {
+    font-family: "SF Mono", "Fira Code", Consolas, monospace;
+    font-size: 12px;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    padding: 10px 14px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 4px 0;
+    line-height: 1.6;
+  }
+
+  .issue-tag {
+    display: inline-block;
+    background: #fff0f0;
+    color: #f54a45;
+    border: 1px solid #ffcfca;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 12px;
+    margin: 2px 2px 2px 0;
+  }
+
+  /* ── Entity Table ── */
+  .entity-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-bottom: 24px;
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #e8e9eb;
+  }
+
+  .entity-table th {
+    background: #f7f8fa;
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    color: #4e5969;
+    border-bottom: 2px solid #e8e9eb;
+    white-space: nowrap;
+  }
+
+  .entity-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #f0f1f3;
+    vertical-align: top;
+  }
+
+  .entity-table tr:last-child td { border-bottom: none; }
+  .entity-table tr:hover td { background: #f7f8fa; }
+
+  /* ── Risk Matrix ── */
+  .risk-matrix {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-bottom: 24px;
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #e8e9eb;
+  }
+
+  .risk-matrix th {
+    background: #f7f8fa;
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    color: #4e5969;
+    border-bottom: 2px solid #e8e9eb;
+  }
+
+  .risk-matrix td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #f0f1f3;
+    vertical-align: top;
+  }
+
+  .risk-matrix tr:last-child td { border-bottom: none; }
+  .risk-matrix tr:hover td { background: #f7f8fa; }
+
+  .risk-matrix .p0-row td { border-left: 3px solid #f54a45; }
+  .risk-matrix .p1-row td { border-left: 3px solid #ff7d00; }
+  .risk-matrix .p2-row td { border-left: 3px solid #1db454; }
+
+  /* ── Summary Boxes ── */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+
+  .summary-card {
+    background: #fff;
+    border: 1px solid #e8e9eb;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+  }
+
+  .summary-card .count {
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  .summary-card .count.red  { color: #f54a45; }
+  .summary-card .count.yellow { color: #ff7d00; }
+  .summary-card .count.green { color: #1db454; }
+
+  .summary-card .label {
+    font-size: 12px;
+    color: #8f959e;
+    margin-top: 4px;
+  }
+
+  /* ── Section divider ── */
+  .section-banner {
+    background: linear-gradient(135deg, #f0f4ff 0%, #e8f7ee 100%);
+    border: 1px solid #d4e0ff;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-banner .icon { font-size: 20px; }
+  .section-banner .text { font-size: 14px; color: #4e5969; }
+  .section-banner .text strong { color: #1f2329; }
+
+  /* ── Note ── */
+  .note {
+    background: #f7f8fa;
+    border-left: 3px solid #366ef4;
+    border-radius: 0 6px 6px 0;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #4e5969;
+    margin-bottom: 16px;
+  }
+
+  .warning-note {
+    background: #fff8e6;
+    border-left: 3px solid #ff7d00;
+    border-radius: 0 6px 6px 0;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #663800;
+    margin-bottom: 16px;
+  }
+
+  .danger-note {
+    background: #fff0f0;
+    border-left: 3px solid #f54a45;
+    border-radius: 0 6px 6px 0;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #7d1a17;
+    margin-bottom: 16px;
+  }
+
+  /* ── Exclusion list ── */
+  .exclude-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #e8e9eb;
+    margin-bottom: 16px;
+  }
+  .exclude-table th {
+    background: #f7f8fa;
+    padding: 8px 14px;
+    text-align: left;
+    font-weight: 600;
+    color: #4e5969;
+    border-bottom: 2px solid #e8e9eb;
+  }
+  .exclude-table td {
+    padding: 8px 14px;
+    border-bottom: 1px solid #f0f1f3;
+    vertical-align: top;
+  }
+  .exclude-table tr:last-child td { border-bottom: none; }
+
+  /* ── Counter chip ── */
+  .chip {
+    display: inline-block;
+    background: #f0f4ff;
+    color: #366ef4;
+    border-radius: 10px;
+    padding: 1px 8px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  /* ── Collapse behavior for sidebar ── */
+  .toc-section { margin-bottom: 8px; }
+  .toc-group-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #c2c7d0;
+    padding: 8px 16px 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-wrapper">
+
+  <!-- Sidebar TOC -->
+  <nav class="sidebar">
+    <div class="sidebar-title">文档目录</div>
+
+    <div class="toc-group-label">概述</div>
+    <a class="sidebar-item" href="#overview">实体关系说明</a>
+    <a class="sidebar-item" href="#summary">风险总览</a>
+
+    <div class="toc-group-label">Part 1 已考虑续期</div>
+    <a class="sidebar-item" href="#part1">✅ 已考虑续期的链路</a>
+    <a class="sidebar-item level2" href="#p1-list">13 处链路详情</a>
+
+    <div class="toc-group-label">Part 2 未考虑续期</div>
+    <a class="sidebar-item" href="#part2">❌ 未考虑续期的链路</a>
+    <a class="sidebar-item level2" href="#p2-list">31 处链路详情</a>
+
+    <div class="toc-group-label">Part 3 部分考虑</div>
+    <a class="sidebar-item" href="#part3">⚠️ 部分/条件性考虑</a>
+
+    <div class="toc-group-label">Part 4 RPC专项</div>
+    <a class="sidebar-item" href="#rpc">对外 RPC 接口专项</a>
+    <a class="sidebar-item level2" href="#rpc-issues">13 个问题接口</a>
+    <a class="sidebar-item level2" href="#rpc-excluded">已排查无需处理</a>
+
+    <div class="toc-group-label">总结</div>
+    <a class="sidebar-item" href="#risk-matrix">风险等级汇总</a>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="main">
+
+    <!-- Header -->
+    <div class="doc-header">
+      <div class="breadcrumb">技术分析 / 权益系统 / 续期问题排查</div>
+      <h1>ChannelReceivedEntity.endTime 和 MarketActUserRight.endTime<br>调用链路分析报告</h1>
+      <div class="doc-meta">
+        <span>📅 2025年</span>
+        <span>👤 AI辅助生成</span>
+        <span>🔖 权益系统 · 续期问题</span>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════ 实体关系 ═══════════════════════ -->
+    <div class="section" id="overview">
+      <h2>📦 实体关系说明</h2>
+      <table class="entity-table">
+        <thead>
+          <tr>
+            <th>实体名</th>
+            <th>数据库表</th>
+            <th>说明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>ChannelReceivedEntity</code></td>
+            <td><code>ykq_market_channel_received</code></td>
+            <td>激活记录，<strong>endTime 为秒级时间戳</strong></td>
+          </tr>
+          <tr>
+            <td><code>MarketActUserRight</code></td>
+            <td><code>ykq_market_act_user_right</code></td>
+            <td>权益记录，<strong>endTime 为 Date 类型</strong></td>
+          </tr>
+          <tr>
+            <td><code>MarketChannelRedeemCodeRenewalEntity</code></td>
+            <td><code>ykq_market_channel_redeem_code_renewal</code></td>
+            <td>续期关系记录（原兑换码 → 续期兑换码）</td>
+          </tr>
+          <tr>
+            <td><code>MarketChannelRightRenewEntity</code></td>
+            <td><code>ykq_market_channel_right_renew</code></td>
+            <td>续期权益记录，<strong>endTime 为 Date 类型</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════ 风险总览 ═══════════════════════ -->
+    <div class="section" id="summary">
+      <h2>📊 风险总览</h2>
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="count red">P0 × 7</div>
+          <div class="label">🔴 高风险 — 直接导致权益误判</div>
+        </div>
+        <div class="summary-card">
+          <div class="count yellow">P1 × 8</div>
+          <div class="label">🟡 中风险 — 展示/数据不准确</div>
+        </div>
+        <div class="summary-card">
+          <div class="count green">P2 × 8</div>
+          <div class="label">🟢 低风险 — 内部逻辑影响有限</div>
+        </div>
+      </div>
+      <div class="danger-note">
+        ⚠️ <strong>核心风险点：</strong><code>queryReceiveIdNotExpired</code> 在 SQL 层面用 <code>MarketActUserRight.end_time</code> 直接过滤，被 RightPackageServerApiImpl、UserServiceRightRpcImpl 等多个上游 RPC 调用，影响面最广。
+      </div>
+    </div>
+
+    <!-- ═══════════════════════ Part 1 ═══════════════════════ -->
+    <div class="section" id="part1">
+      <h2>✅ 一、已考虑续期的链路 <span class="chip">13 处</span></h2>
+      <div class="note">以下链路在查询 endTime 时，均有查询 <code>MarketChannelRedeemCodeRenewalEntity</code> 或 <code>MarketChannelRightRenewEntity</code>，并以续期后的时间为准。</div>
+
+      <div id="p1-list"></div>
+
+      <!-- 1.1 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">1.1 RightQueryServiceImpl.queryUserRightValidPeriod</span>
+          <span class="badge badge-ok">✅ 已考虑</span>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightQueryServiceImpl.java:3722-3762</code></span></div>
+          <div class="field-row"><span class="field-label">说明</span><span class="field-value">查询用户权益有效期时，根据 redeemCode 查询 MarketChannelRightRenewEntity，如果存在续期记录，用续期权益的 endTime 作为最终时间；原权益 endTime 仅作为续期前的截止时间。</span></div>
+          <div class="field-row"><span class="field-label">续期处理</span><span class="field-value"><div class="code-block">detailDto.setEndTime(CollectionUtils.isEmpty(rightRenews)
+  ? userRightValidPeriodDto.getEndTime()
+  : DateUtil.offsetSecond(rightRenews.get(0).getStartTime(), -1))
+// 遍历续期记录设置续期时间段</div></span></div>
+        </div>
+      </div>
+
+      <!-- 1.2 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">1.2 RightQueryServiceImpl.buildPatientRightRenewDtos</span>
+          <span class="badge badge-ok">✅ 已考虑</span>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightQueryServiceImpl.java:2440-2512</code></span></div>
+          <div class="field-row"><span class="field-label">说明</span><span class="field-value">构建患者续期 DTO，查询 MarketChannelRedeemCodeRenewalEntity 和 MarketChannelRightRenewEntity，取续期权益最晚 endTime。</span></div>
+          <div class="field-row"><span class="field-label">续期处理</span><span class="field-value">查询续期关系 → 查续期权益 → 按 endTime 倒序取最大值</span></div>
+        </div>
+      </div>
+
+      <!-- 1.3 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">1.3 RightQueryServiceImpl.getEarliestExpireTime</span>
+          <span class="badge badge-ok">✅ 已考虑</span>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightQueryServiceImpl.java:2617-2657</code></span></div>
+          <div class="field-row"><span class="field-label">说明</span><span class="field-value">获取最早过期时间，对于组合权益类型，会查询续期记录并取续期权益的 endTime。</span></div>
+          <div class="field-row"><span class="field-label">续期处理</span><span class="field-value">查 MarketChannelRedeemCodeRenewalEntity → MarketChannelRightRenewEntity → 过滤 RIGHT_COMBINATION 类型</span></div>
+        </div>
+      </div>
+
+      <!-- 1.4 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">1.4 RightQueryServiceImpl.getEarliestExpireTimeNew</span>
+          <span class="badge badge-ok">✅ 已考虑</span>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightQueryServiceImpl.java:2580-2614</code></span></div>
+          <div class="field-row"><span class="field-label">说明</span><span class="field-value">类似 getEarliestExpireTime，但增加了 patientId 维度的续期查询。</span></div>
+        </div>
+      </div>
+
+      <!-- 1.5 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">1.5 RightQueryServiceImpl.buildPatientServiceTimeDto</span>
+          <span class="badge badge-ok">✅ 已考虑</span>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightQueryServiceImpl.java:2514-2576</code></span></div>
+          <div class="field-row"><span class="field-label">说明</span><span class="field-value">构建患者服务时间，查询续期权益并取最晚 endTime。</span></div>
+          <div class="field-row"><span class="field-label">续期处理</span><span class="field-value">查 MarketChannelRedeemCodeRenewalEntity → MarketChannelRightRenewEntity</span></div>
+        </div>
+      </div>
+
+      <!-- 1.6 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">1.6 SpecialDrugRightOfMyQuery.filterExpired</span>
+          <span class="badge badge-ok">✅ 已考虑</span>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>SpecialDrugRightOfMyQuery.java:44-93</code></span></div>
+          <div class="field-row"><span class="field-label">说明</span><span class="field-value">特药权益过期过滤，优先查续期权益的 endTime 判断过期。</span></div>
+          <div class="field-row"><span class="field-label">续期处理</span><span class="field-value">查续期关系 → 查续期权益 → 用续期权益 endTime 判断过期</span></div>
+        </div>
+      </div>
+
+      <!-- 1.7 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">1.7 CareRightOfMyQuery.filterExpired</span>
+          <span class="badge badge-ok">✅ 已考虑</span>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>CareRightOfMyQuery.java:45-93</code></span></div>
+          <div class="field-row"><span class="field-label">说明</span><span class="field-value">护理权益过期过滤，同特药逻辑，优先用续期权益 endTime。</span></div>
+          <div class="field-row"><span class="field-label">续期处理</span><span class="field-value">查续期关系 → 查续期权益 → 用续期权益 endTime 判断过期</span></div>
+        </div>
+      </div>
+
+      <!-- 1.8 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">1.8 RenewRightsService.validateRenewRight</span>
+          <span class="badge badge-ok">✅ 已考虑（续期业务本身）</span>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RenewRightsService.java:180-204</code></span></div>
+          <div class="field-row"><span class="field-label">说明</span><span class="field-value">续期校验时，查已有续期记录取最晚 endTime。</span></div>
+        </div>
+      </div>
+
+      <!-- 1.9 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">1.9 RenewRightsService.buildRenewValidationResultVo</span>
+          <span class="badge badge-ok">✅ 已考虑</span>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RenewRightsService.java:588-664</code></span></div>
+          <div class="field-row"><span class="field-label">说明</span><span class="field-value">构建续期结果时，查续期权益 endTime；1020 升级卡也查续期记录。</span></div>
+        </div>
+      </div>
+
+      <!-- 1.10 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">1.10 RenewRightsService.checkActivateAge</span>
+          <span class="badge badge-ok">✅ 已考虑</span>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RenewRightsService.java:510-523</code></span></div>
+          <div class="field-row"><span class="field-label">说明</span><span class="field-value">校验激活年龄时，优先用续期权益 endTime 判断年龄。</span></div>
+        </div>
+      </div>
+
+      <!-- 1.11 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">1.11 RightManager.buildPatientRightVo</span>
+          <span class="badge badge-ok">✅ 已考虑</span>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightManager.java:1449-1496</code></span></div>
+          <div class="field-row"><span class="field-label">说明</span><span class="field-value">构建患者权益Vo时，有续期权益则用续期最晚 endTime。</span></div>
+          <div class="field-row"><span class="field-label">续期处理</span><span class="field-value"><div class="code-block">rightRenewEntityList.stream()
+  .sorted(Comparator.comparing(MarketChannelRightRenewEntity::getEndTime).reversed())
+  // 取最晚 endTime</div></span></div>
+        </div>
+      </div>
+
+      <!-- 1.12 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">1.12 YuanKeRightHandlerSaveDataNode</span>
+          <span class="badge badge-ok">✅ 已考虑</span>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>YuanKeRightHandlerSaveDataNode.java:172</code></span></div>
+          <div class="field-row"><span class="field-label">说明</span><span class="field-value">远科权益保存时，用续期权益的 endTime 更新 ChannelReceived。</span></div>
+          <div class="field-row"><span class="field-label">续期处理</span><span class="field-value"><code>updateChannelReceived.setEndTime(rightRenew.getEndTime().getTime() / 1000)</code></span></div>
+        </div>
+      </div>
+
+      <!-- 1.13 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">1.13 RenewPackageRightsHelper</span>
+          <span class="badge badge-ok">✅ 已考虑</span>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RenewPackageRightsHelper.java:125</code></span></div>
+          <div class="field-row"><span class="field-label">说明</span><span class="field-value">权益包续期时，设置续期权益 endTime。</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════ Part 2 ═══════════════════════ -->
+    <div class="section" id="part2">
+      <h2>❌ 二、未考虑续期的链路 <span class="chip">31 处</span></h2>
+      <div class="warning-note">⚠️ 以下链路直接使用原始 <code>endTime</code>，没有查询续期表，存在权益误判风险。</div>
+
+      <div id="p2-list"></div>
+
+      <!-- 2.1 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.1 RightQueryRpcImpl.queryChannelReceivedByUserIds</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌ 未考虑</span><span class="badge badge-p0">🔴 P0</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightQueryRpcImpl.java:1260-1278</code></span></div>
+          <div class="field-row"><span class="field-label">调用链路</span><span class="field-value">RPC 接口 → 查用户激活记录 → 用 endTime 过滤未过期记录 → 返回 VO</span></div>
+          <div class="field-row"><span class="field-label">缺失代码</span><span class="field-value"><div class="code-block">current &lt; item.getEndTime()  // 直接用原始激活记录时间</div></span></div>
+          <div class="field-row"><span class="field-label">问题</span><span class="field-value"><span class="issue-tag">漏返回</span> 续期后原激活记录 endTime 已过，会被过滤掉，调用方拿不到该权益</span></div>
+        </div>
+      </div>
+
+      <!-- 2.2 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.2 RightQueryRpcImpl.getChannelUserRightVo</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌ 未考虑</span><span class="badge badge-p1">🟡 P1</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightQueryRpcImpl.java:2198-2208</code></span></div>
+          <div class="field-row"><span class="field-label">调用链路</span><span class="field-value">RPC 接口 → 查激活记录 → 组装 VO 返回 endTime</span></div>
+          <div class="field-row"><span class="field-label">问题</span><span class="field-value"><span class="issue-tag">数据不准</span> 直接返回 ChannelReceivedEntity.getEndTime()，调用方无法感知续期后的时间</span></div>
+        </div>
+      </div>
+
+      <!-- 2.3 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.3 RightPackageServerApiImpl.getRightPerformanceUrl（美信/医幸）</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌ 未考虑</span><span class="badge badge-p0">🔴 P0</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightPackageServerApiImpl.java:275-314</code></span></div>
+          <div class="field-row"><span class="field-label">调用链路</span><span class="field-value">获取权益跳转链接 → 判断激活记录 endTime 是否过期</span></div>
+          <div class="field-row"><span class="field-label">缺失代码</span><span class="field-value"><div class="code-block">channelReceivedVO.getEndTime() &lt; currentTime  // 行 279, 313</div></span></div>
+          <div class="field-row"><span class="field-label">问题</span><span class="field-value"><span class="issue-tag">误拦截</span> 用户续期后原激活记录过期，会被误判为"权益已过期"，无法跳转到第三方服务</span></div>
+        </div>
+      </div>
+
+      <!-- 2.4 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.4 RightRpcImpl.specialMedicExchangeRight</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌ 未考虑</span><span class="badge badge-p1">🟡 P1</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightRpcImpl.java:920-924</code></span></div>
+          <div class="field-row"><span class="field-label">调用链路</span><span class="field-value">特药兑换 → 查 MarketActUserRight → 用 endTime 拼接权益有效期显示</span></div>
+          <div class="field-row"><span class="field-label">问题</span><span class="field-value"><span class="issue-tag">展示错误</span> 直接用 userRight.getEndTime() 拼接有效期字符串，续期后展示时间仍是旧时间</span></div>
+        </div>
+      </div>
+
+      <!-- 2.5 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.5 RightRpcImpl.queryRightLockStatus</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌ 未考虑</span><span class="badge badge-p0">🔴 P0</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightRpcImpl.java:2809</code></span></div>
+          <div class="field-row"><span class="field-label">调用链路</span><span class="field-value">查询权益锁定状态 → 用 endTime 过滤未过期权益</span></div>
+          <div class="field-row"><span class="field-label">缺失代码</span><span class="field-value"><div class="code-block">.filter(x -> DateUtils.now().before(x.getEndTime()))  // 只判断原始权益时间</div></span></div>
+          <div class="field-row"><span class="field-label">问题</span><span class="field-value"><span class="issue-tag">状态错误</span> 续期后用户有效权益可能被过滤，导致服务被误判为锁定状态</span></div>
+        </div>
+      </div>
+
+      <!-- 2.6 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.6 RightRpcImpl.grantDXRight</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌ 未考虑</span><span class="badge badge-p0">🔴 P0</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightRpcImpl.java:3047</code></span></div>
+          <div class="field-row"><span class="field-label">调用链路</span><span class="field-value">发放 DX 权益 → 用 actUserRight.getEndTime() 判断是否在权益周期内</span></div>
+          <div class="field-row"><span class="field-label">缺失代码</span><span class="field-value"><div class="code-block">actUserRight.getEndTime().after(grantDXRightDTO.getApplyDate())  // 未考虑续期</div></span></div>
+          <div class="field-row"><span class="field-label">问题</span><span class="field-value"><span class="issue-tag">周期截止过早</span> 续期后时间延长了，但这里无法感知，DX 权益发放可能提前截止</span></div>
+        </div>
+      </div>
+
+      <!-- 2.7 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.7 RightManager.queryUserRight</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌ 未考虑</span><span class="badge badge-p1">🟡 P1</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightManager.java:500-512</code></span></div>
+          <div class="field-row"><span class="field-label">调用链路</span><span class="field-value">查询用户权益 → 组装 RightReceivedVo 直接返回 channelReceivedEntity.getEndTime()</span></div>
+        </div>
+      </div>
+
+      <!-- 2.8 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.8 RightManager.getRightCardVo</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌ 未考虑</span><span class="badge badge-p1">🟡 P1</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightManager.java:1060-1099</code></span></div>
+          <div class="field-row"><span class="field-label">调用链路</span><span class="field-value">获取权益卡Vo → 用 channelReceivedEntity.getEndTime() 拼接有效期</span></div>
+          <div class="field-row"><span class="field-label">问题</span><span class="field-value"><span class="issue-tag">代码被注释</span> 第 1088-1099 行续期相关代码已被注释，实际未启用，仍用原始 endTime</span></div>
+        </div>
+      </div>
+
+      <!-- 2.9 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.9 RightManager.getRightCardDetailVo</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌ 未考虑</span><span class="badge badge-p1">🟡 P1</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightManager.java:1383-1388</code></span></div>
+          <div class="field-row"><span class="field-label">调用链路</span><span class="field-value">获取权益卡详情Vo → 用 channelReceivedEntity.getEndTime() 拼接有效期</span></div>
+        </div>
+      </div>
+
+      <!-- 2.10 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.10 RightManager.getRightOptimalCardVo</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌ 未考虑</span><span class="badge badge-p0">🔴 P0</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightManager.java:2480, 2535</code></span></div>
+          <div class="field-row"><span class="field-label">调用链路</span><span class="field-value">获取最优权益卡 → 用 channelReceivedEntity.getEndTime() 判断是否在有效期内</span></div>
+          <div class="field-row"><span class="field-label">缺失代码</span><span class="field-value"><div class="code-block">channelReceivedEntity.getEndTime() > DateUtils.getSecondTimestamp()</div></span></div>
+          <div class="field-row"><span class="field-label">问题</span><span class="field-value"><span class="issue-tag">功能关闭</span> 用于判断是否展示健康数据服务，未考虑续期，续期后可能无法展示对应服务</span></div>
+        </div>
+      </div>
+
+      <!-- 2.11 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.11 RightManager.queryRightListByStatus（已过期状态）</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌ 未考虑</span><span class="badge badge-p0">🔴 P0</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightManager.java:725</code></span></div>
+          <div class="field-row"><span class="field-label">调用链路</span><span class="field-value">按状态查询权益列表 → 用 endTime 过滤已过期记录</span></div>
+          <div class="field-row"><span class="field-label">缺失代码</span><span class="field-value"><div class="code-block">.filter(e -> e.getEndTime() &lt; DateUtils.getSecondTimestamp())  // 没考虑续期后不应算过期</div></span></div>
+        </div>
+      </div>
+
+      <!-- 2.12 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.12 RightServiceImpl.checkGrantInstrumentRight</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌ 未考虑</span><span class="badge badge-p2">🟢 P2</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightServiceImpl.java:1954</code></span></div>
+          <div class="field-row"><span class="field-label">调用链路</span><span class="field-value">校验器械权益兑换 → 用 receivedEntity.getEndTime() 判断是否已兑换过</span></div>
+        </div>
+      </div>
+
+      <!-- 2.13 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.13 RightQueryServiceImpl.queryUserRightList</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌ 未考虑</span><span class="badge badge-p0">🔴 P0</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightQueryServiceImpl.java:4228-4251</code></span></div>
+          <div class="field-row"><span class="field-label">调用链路</span><span class="field-value">查询用户权益列表（分类：生效中 / 未生效 / 已失效）→ 用 ChannelReceivedEntity.endTime 分类</span></div>
+          <div class="field-row"><span class="field-label">缺失代码</span><span class="field-value"><div class="code-block">e.getEndTime() >= now  // 生效
+e.getEndTime() &lt; now   // 失效 — 均未考虑续期</div></span></div>
+          <div class="field-row"><span class="field-label">问题</span><span class="field-value"><span class="issue-tag">分类错误</span> 续期后权益仍被归类为"已失效"</span></div>
+        </div>
+      </div>
+
+      <!-- 2.14 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.14 RightQueryServiceImpl.checkOrderByChannelId</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌ 未考虑</span><span class="badge badge-p2">🟢 P2</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightQueryServiceImpl.java:3841-3842</code></span></div>
+          <div class="field-row"><span class="field-label">调用链路</span><span class="field-value">校验订单 → 按 ChannelReceivedEntity.endTime 排序取最早的一条</span></div>
+        </div>
+      </div>
+
+      <!-- 2.15 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.15 RightQueryServiceImpl.queryEffectiveRights</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌ 未考虑</span><span class="badge badge-p2">🟢 P2</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightQueryServiceImpl.java:3876</code></span></div>
+          <div class="field-row"><span class="field-label">调用链路</span><span class="field-value">查询有效权益 → 按 ChannelReceivedEntity.endTime 倒序取最新一条</span></div>
+        </div>
+      </div>
+
+      <!-- 2.16 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.16 RightQueryServiceImpl.useAbleRight</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌ 未考虑</span><span class="badge badge-p0">🔴 P0</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightQueryServiceImpl.java:2988-2996</code></span></div>
+          <div class="field-row"><span class="field-label">调用链路</span><span class="field-value">判断权益是否可用 → 用 userRight.getEndTime() 判断是否过期</span></div>
+          <div class="field-row"><span class="field-label">缺失代码</span><span class="field-value"><div class="code-block">endTime.after(new Date())  // 只判断原始权益时间</div></span></div>
+        </div>
+      </div>
+
+      <!-- 2.17 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.17 RightQueryServiceImpl.isUsable（两个重载）</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌ 未考虑</span><span class="badge badge-p0">🔴 P0</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightQueryServiceImpl.java:3005-3029, 3037-3059</code></span></div>
+          <div class="field-row"><span class="field-label">调用链路</span><span class="field-value">校验权益是否可用 → 用 right.getEndTime() 判断是否过期</span></div>
+          <div class="field-row"><span class="field-label">缺失代码</span><span class="field-value"><div class="code-block">right.getEndTime().getTime() &lt; nowTime  // 只判断原始权益时间</div></span></div>
+        </div>
+      </div>
+
+      <!-- 2.18 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.18 RightQueryServiceImpl.getExpirationCountdown</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌ 未考虑</span><span class="badge badge-p1">🟡 P1</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightQueryServiceImpl.java:2351-2359</code></span></div>
+          <div class="field-row"><span class="field-label">调用链路</span><span class="field-value">获取权益过期倒计时 → 用 userRight.getEndTime() 计算</span></div>
+          <div class="field-row"><span class="field-label">问题</span><span class="field-value"><span class="issue-tag">倒计时偏短</span> 续期后用户看到的剩余时间仍基于原始权益时间，展示错误</span></div>
+        </div>
+      </div>
+
+      <!-- 2.19 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.19 RightManager.buildRightCardDetailVo</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌ 未考虑</span><span class="badge badge-p1">🟡 P1</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightManager.java:1386-1388</code></span></div>
+          <div class="field-row"><span class="field-label">调用链路</span><span class="field-value">构建权益卡详情 → 用 channelReceivedEntity.getEndTime() 拼接有效期字符串</span></div>
+          <div class="field-row"><span class="field-label">问题</span><span class="field-value"><span class="issue-tag">代码被注释</span> 已注释掉续期相关代码</span></div>
+        </div>
+      </div>
+
+      <!-- 2.20 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.20 RightManager.buildPatientRightVo 中的特殊权益 endTime 逻辑</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-warn">⚠️ 部分考虑</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightManager.java:1452-1454</code></span></div>
+          <div class="field-row"><span class="field-label">说明</span><span class="field-value">先用 channelReceivedEntity.getEndTime() 作为 base，然后如果有组合权益则用组合权益最晚 endTime，最后如果有续期则覆盖。</span></div>
+          <div class="field-row"><span class="field-label">状态</span><span class="field-value">对组合权益时间已覆盖，但对非组合权益（普药等）仍只有通过续期覆盖的逻辑</span></div>
+        </div>
+      </div>
+
+      <!-- 2.21 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.21 RightManager 中多个过滤已过期激活记录的方法</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌ 未考虑</span><span class="badge badge-p0">🔴 P0</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightManager.java:971, 2044, 2480, 2535</code></span></div>
+          <div class="field-row"><span class="field-label">调用链路</span><span class="field-value">多处用 receivedEntity.getEndTime() &lt; DateUtils.getSecondTimestamp() 判断是否过期</span></div>
+          <div class="field-row"><span class="field-label">问题</span><span class="field-value"><span class="issue-tag">批量误判</span> 所有地方均没有查续期，续期用户被整体误判过期</span></div>
+        </div>
+      </div>
+
+      <!-- 2.22 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.22 RightUpgradeManager 中多处过滤</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌ 未考虑</span><span class="badge badge-p2">🟢 P2</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightUpgradeManager.java:230, 340, 611, 1803, 2003</code></span></div>
+          <div class="field-row"><span class="field-label">调用链路</span><span class="field-value">升级相关逻辑，用 receivedEntity.getEndTime() 过滤有效/过期</span></div>
+          <div class="field-row"><span class="field-label">缺失代码</span><span class="field-value"><div class="code-block">.filter(e -> e.getEndTime() > DateUtils.getSecondTimestamp())</div></span></div>
+        </div>
+      </div>
+
+      <!-- 2.23 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.23 ChannelRedeemCodeServiceImpl 中多处</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌ 未考虑</span><span class="badge badge-p2">🟢 P2</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>ChannelRedeemCodeServiceImpl.java:841, 870, 885, 900, 912, 926, 1350, 1379, 1391</code></span></div>
+          <div class="field-row"><span class="field-label">调用链路</span><span class="field-value">兑换码相关校验，用 userRight.getEndTime().before(new Date()) 判断权益是否过期</span></div>
+        </div>
+      </div>
+
+      <!-- 2.24 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.24 BaseUserRightOfMyQuery.getReceivedAndYearMap</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌ 未考虑</span><span class="badge badge-p2">🟢 P2</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>BaseUserRightOfMyQuery.java:162-188, 191-218</code></span></div>
+          <div class="field-row"><span class="field-label">调用链路</span><span class="field-value">获取权益年限映射，用 userRight.getEndTime() 作为 endTime</span></div>
+          <div class="field-row"><span class="field-label">缺失代码</span><span class="field-value"><div class="code-block">endTime = userRight.getEndTime()</div></span></div>
+        </div>
+      </div>
+
+      <!-- 2.25 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.25 AbstractGeneralRightOfMyQuery</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌ 未考虑</span><span class="badge badge-p2">🟢 P2</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>AbstractGeneralRightOfMyQuery.java:108-114</code></span></div>
+          <div class="field-row"><span class="field-label">调用链路</span><span class="field-value">通用权益查询，用 parentUserRight.getEndTime() 作为有效期</span></div>
+          <div class="field-row"><span class="field-label">缺失代码</span><span class="field-value"><div class="code-block">endTime = userRight.getEndTime()</div></span></div>
+        </div>
+      </div>
+
+      <!-- 2.26 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.26 RightManager.queryReceivedVoListByChannelIds</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌ 未考虑</span><span class="badge badge-p1">🟡 P1</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightManager.java:1265</code></span></div>
+          <div class="field-row"><span class="field-label">调用链路</span><span class="field-value">查询接收记录列表 → 设置 endTime</span></div>
+          <div class="field-row"><span class="field-label">缺失代码</span><span class="field-value"><div class="code-block">receiveIdDto.setEndTime(channelReceivedEntity.getEndTime())</div></span></div>
+        </div>
+      </div>
+
+      <!-- 2.27 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.27 GrantRightsService.deleteRightByReceiveId</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌ 未考虑</span><span class="badge badge-p2">🟢 P2</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>GrantRightsService.java:238-243</code></span></div>
+          <div class="field-row"><span class="field-label">调用链路</span><span class="field-value">删除权益 → 用 channelReceived.getEndTime() 判断权益是否已生效/已失效</span></div>
+        </div>
+      </div>
+
+      <!-- 2.28 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.28 ChannelReceivedRpcImpl 对外 RPC 接口</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌ 未考虑</span><span class="badge badge-p1">🟡 P1</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>ChannelReceivedRpcImpl.java:876</code></span></div>
+          <div class="field-row"><span class="field-label">调用链路</span><span class="field-value">对外 RPC 返回激活记录 → 直接返回 channelReceivedVO.getEndTime()</span></div>
+        </div>
+      </div>
+
+      <!-- 2.29 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.29 RightQueryServiceImpl 中多个查询权益接口</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌ 未考虑</span><span class="badge badge-p1">🟡 P1</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightQueryServiceImpl.java:3271, 4047, 4919, 5007, 5379</code></span></div>
+          <div class="field-row"><span class="field-label">调用链路</span><span class="field-value">多处构建返回 DTO 时，直接使用 receivedEntity.getEndTime() / marketActUserRight.getEndTime()</span></div>
+        </div>
+      </div>
+
+      <!-- 2.30 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.30 RightManager.queryRightDetailInfo</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌ 未考虑</span><span class="badge badge-p1">🟡 P1</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightManager.java:2129-2130</code></span></div>
+          <div class="field-row"><span class="field-label">调用链路</span><span class="field-value">查询权益详情 → 用 userRight.getEndTime() 格式化时间</span></div>
+        </div>
+      </div>
+
+      <!-- 2.31 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">2.31 RightQueryServiceImpl.queryRightDetail</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌ 未考虑</span><span class="badge badge-p1">🟡 P1</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightQueryServiceImpl.java:2934</code></span></div>
+          <div class="field-row"><span class="field-label">调用链路</span><span class="field-value">查询权益详情 → 用 userRight.getEndTime() 设置过期时间</span></div>
+          <div class="field-row"><span class="field-label">缺失代码</span><span class="field-value"><div class="code-block">rightDetail.setExpireTime(userRight.getEndTime().getTime())</div></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════ Part 3 ═══════════════════════ -->
+    <div class="section" id="part3">
+      <h2>⚠️ 三、部分/条件性考虑的链路 <span class="chip">4 处</span></h2>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">3.1 RightManager 权益卡列表 — buildEffectingRight</span>
+          <span class="badge badge-warn">⚠️ 部分考虑</span>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightManager.java:720-722</code></span></div>
+          <div class="field-row"><span class="field-label">说明</span><span class="field-value">构建生效中权益时，传入了 rightRenewEntities 和 renewalEntities，后续 buildPatientRightVo 已考虑续期，但 getRightCardVo 中未使用续期数据（注释掉了相关代码）。</span></div>
+          <div class="field-row"><span class="field-label">状态</span><span class="field-value">患者维度已考虑，<strong>权益卡维度未考虑</strong></span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">3.2 RightManager.getRightCardDetailVo</span>
+          <span class="badge badge-warn">⚠️ 部分考虑</span>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightManager.java:1410-1412</code></span></div>
+          <div class="field-row"><span class="field-label">说明</span><span class="field-value">调用 buildPatientRightVo 时传入了 redeemCodeRenewalEntities 和 rightRenewEntities，患者维度的有效期已考虑续期。</span></div>
+          <div class="field-row"><span class="field-label">状态</span><span class="field-value">患者维度已考虑，<strong>卡本身的有效期（1386行）未考虑续期</strong></span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">3.3 RightDataCleanServiceImpl</span>
+          <span class="badge badge-warn">⚠️ 部分考虑</span>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightDataCleanServiceImpl.java:1591, 2266, 2292, 2981, 3107, 3114, 3147, 3219, 3346, 3472, 3604</code></span></div>
+          <div class="field-row"><span class="field-label">说明</span><span class="field-value">数据清洗逻辑中，有些地方直接用 actUserRight.getEndTime()（未考虑续期），有些地方是数据修复逻辑（可能不需要考虑）。</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">3.4 GrantRightHuaTaiStrategy</span>
+          <span class="badge badge-warn">⚠️ 部分考虑</span>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>GrantRightHuaTaiStrategy.java:172-175</code></span></div>
+          <div class="field-row"><span class="field-label">说明</span><span class="field-value">如果有续期（参数有 endTime）则用参数，否则用原始权益 endTime。</span></div>
+          <div class="field-row"><span class="field-label">状态</span><span class="field-value"><strong>依赖于调用方是否传入续期时间</strong>，被动兼容</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════ Part 4 RPC 专项 ═══════════════════════ -->
+    <div class="section" id="rpc">
+      <h2>🔌 四、对外 RPC 接口专项分析 <span class="chip">13 个问题接口</span></h2>
+      <div class="danger-note">
+        🔴 <strong>重点关注：</strong>对外暴露的 RPC 接口若未考虑续期，会直接将错误数据传播到其他服务，影响面最广。
+      </div>
+
+      <div id="rpc-issues"></div>
+
+      <!-- RPC 1 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">① RightQueryRpcImpl.queryChannelReceivedByUserIds</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌</span><span class="badge badge-p0">🔴 P0</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">方法签名</span><span class="field-value"><code>ResponseResult&lt;List&lt;ChannelReceivedVO&gt;&gt; queryChannelReceivedByUserIds(List&lt;Integer&gt; userIdList, Integer status)</code></span></div>
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightQueryRpcImpl.java:1252-1288</code></span></div>
+          <div class="field-row"><span class="field-label">调用方</span><span class="field-value">其他服务（如用户端、订单服务等）通过 RPC 调用</span></div>
+          <div class="field-row"><span class="field-label">链路</span><span class="field-value">查 ChannelReceivedEntity → <code>current &lt; item.getEndTime()</code> 过滤有效记录 → 组装 ChannelReceivedVO 返回 <code>r.getEndTime()</code></span></div>
+          <div class="field-row"><span class="field-label">问题</span><span class="field-value"><span class="issue-tag">①漏返回</span> 续期后原记录过期，调用方拿不到该用户的权益 <span class="issue-tag">②时间不准</span> 返回的 endTime 是原始时间</span></div>
+        </div>
+      </div>
+
+      <!-- RPC 2 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">② RightQueryRpcImpl.queryChannelReceivedByUserIdsAndStatus</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌</span><span class="badge badge-p0">🔴 P0</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">方法签名</span><span class="field-value"><code>ResponseResult&lt;List&lt;ChannelCodeReceivedVO&gt;&gt; queryChannelReceivedByUserIdsAndStatus(List&lt;Integer&gt; userIdList, Integer status)</code></span></div>
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightQueryRpcImpl.java:1645-1684</code></span></div>
+          <div class="field-row"><span class="field-label">调用方</span><span class="field-value">其他服务通过 RPC 调用</span></div>
+          <div class="field-row"><span class="field-label">链路</span><span class="field-value">查 ChannelReceivedEntity → <code>current &lt; item.getEndTime()</code> 过滤 → 返回 channelCode</span></div>
+          <div class="field-row"><span class="field-label">问题</span><span class="field-value"><span class="issue-tag">漏返回</span> 过滤条件仅用原始激活记录 endTime，续期后权益被漏掉</span></div>
+        </div>
+      </div>
+
+      <!-- RPC 3 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">③ RightQueryRpcImpl.queryReceiveIdNotExpired ⭐ 最高风险</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌</span><span class="badge badge-p0">🔴 P0</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightQueryRpcImpl.java:1218-1231</code></span></div>
+          <div class="field-row"><span class="field-label">调用方</span><span class="field-value">被 RightPackageServerApiImpl、UserServiceRightRpcImpl 等多个上游 RPC 调用</span></div>
+          <div class="field-row"><span class="field-label">链路</span><span class="field-value">userRightMapper.queryReceiveIdNotExpired(receiveId) → SQL 直接过滤</span></div>
+          <div class="field-row"><span class="field-label">缺失代码</span><span class="field-value"><div class="code-block">-- SQL 层面
+SELECT * FROM ykq_market_act_user_right
+WHERE receive_id = #{receiveId} AND end_time >= NOW()
+-- 没有 JOIN MarketChannelRightRenewEntity</div></span></div>
+          <div class="field-row"><span class="field-label">问题</span><span class="field-value"><span class="issue-tag">SQL级别过滤</span> 在 SQL 层面直接用 MarketActUserRight.end_time 过滤，是所有问题中影响面最广的底层方法</span></div>
+        </div>
+      </div>
+
+      <!-- RPC 4 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">④ RightQueryRpcImpl.queryReceivedByUserRightId</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌</span><span class="badge badge-p1">🟡 P1</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">方法签名</span><span class="field-value"><code>ResponseResult&lt;ChannelUserRightVo&gt; queryReceivedByUserRightId(Long userRightId)</code></span></div>
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightQueryRpcImpl.java:2171-2208</code></span></div>
+          <div class="field-row"><span class="field-label">链路</span><span class="field-value">查 MarketActUserRight → 查 ChannelReceivedEntity → getChannelUserRightVo() → <code>setEndTime(channelReceivedEntity.getEndTime())</code></span></div>
+          <div class="field-row"><span class="field-label">问题</span><span class="field-value"><span class="issue-tag">时间不准</span> 返回的 endTime 是原始激活记录的时间，调用方永远感知不到续期</span></div>
+        </div>
+      </div>
+
+      <!-- RPC 5 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">⑤ RightRpcImpl 5+1 个兑换方法（special/instrument/porter/care/greenPassage/package）</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌</span><span class="badge badge-p1">🟡 P1</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightRpcImpl.java:907-1972</code></span></div>
+          <div class="field-row"><span class="field-label">调用方</span><span class="field-value">前端 / 订单服务通过 RPC 调用</span></div>
+          <div class="field-row"><span class="field-label">链路</span><span class="field-value">兑换成功 → 查 MarketActUserRight → <code>userRight.getEndTime()</code> → 拼接 rightValidTime 字符串返回给调用方</span></div>
+          <div class="field-row"><span class="field-label">问题</span><span class="field-value"><span class="issue-tag">展示错误</span> 兑换后展示的有效期是原始权益时间，续期后仍显示旧时间</span></div>
+        </div>
+      </div>
+
+      <!-- RPC 6 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">⑥ RightRpcImpl.refreshSpecialRight</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌</span><span class="badge badge-p1">🟡 P1</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightRpcImpl.java:1423-1504</code></span></div>
+          <div class="field-row"><span class="field-label">调用方</span><span class="field-value">定时任务 / 管理后台通过 RPC 调用</span></div>
+          <div class="field-row"><span class="field-label">链路</span><span class="field-value">刷新同步权益到圆心等第三方 → <code>dto.setExpiredAt(specialMedicRight.getEndTime())</code></span></div>
+          <div class="field-row"><span class="field-label">问题</span><span class="field-value"><span class="issue-tag">同步错误</span> 同步给第三方的过期时间是原始权益 endTime，第三方无法感知续期后的时间</span></div>
+        </div>
+      </div>
+
+      <!-- RPC 7 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">⑦ RightRpcImpl.rightLockStatus</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌</span><span class="badge badge-p0">🔴 P0</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">方法签名</span><span class="field-value"><code>ResponseResult&lt;List&lt;RightLockStatusResult&gt;&gt; rightLockStatus(Integer userId, String channelCode)</code></span></div>
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightRpcImpl.java:2799-2829</code></span></div>
+          <div class="field-row"><span class="field-label">调用方</span><span class="field-value">前端 / 其他服务通过 RPC 调用</span></div>
+          <div class="field-row"><span class="field-label">链路</span><span class="field-value">查 MarketActUserRight → <code>.filter(x -> DateUtils.now().before(x.getEndTime()))</code> → 判断锁定状态</span></div>
+          <div class="field-row"><span class="field-label">问题</span><span class="field-value"><span class="issue-tag">状态错误</span> 续期后用户有效权益被过滤掉，导致服务被误判为锁定状态，影响用户正常使用</span></div>
+        </div>
+      </div>
+
+      <!-- RPC 8 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">⑧ RightRpcImpl.hasHyManagerRight</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌</span><span class="badge badge-p0">🔴 P0</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">方法签名</span><span class="field-value"><code>Boolean hasHyManagerRight(Integer userId, String channelCode)</code></span></div>
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightRpcImpl.java:2778-2796</code></span></div>
+          <div class="field-row"><span class="field-label">链路</span><span class="field-value">查 MarketActUserRight → <code>.filter(x -> DateUtils.now().before(x.getEndTime()))</code> → 判断是否有和业管理权益</span></div>
+          <div class="field-row"><span class="field-label">问题</span><span class="field-value"><span class="issue-tag">权益误判</span> 续期后的和业管理权益可能被误判为无效</span></div>
+        </div>
+      </div>
+
+      <!-- RPC 9 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">⑨ RightRpcImpl.grantDXRight</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌</span><span class="badge badge-p1">🟡 P1</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">方法签名</span><span class="field-value"><code>ResponseResult grantDXRight(GrantDXRightDTO grantDXRightDTO)</code></span></div>
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightRpcImpl.java:3047</code></span></div>
+          <div class="field-row"><span class="field-label">调用方</span><span class="field-value">其他服务通过 RPC 调用</span></div>
+          <div class="field-row"><span class="field-label">链路</span><span class="field-value">查 MarketActUserRight → <code>actUserRight.getEndTime().after(grantDXRightDTO.getApplyDate())</code> 判断是否在权益周期内</span></div>
+          <div class="field-row"><span class="field-label">问题</span><span class="field-value"><span class="issue-tag">周期截止过早</span> 续期后时间延长了但这里无法感知，导致 DX 权益发放提前终止</span></div>
+        </div>
+      </div>
+
+      <!-- RPC 10 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">⑩ RightPackageServerApiImpl.queryServiceItemButtonActionInfo</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌</span><span class="badge badge-p0">🔴 P0</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">方法签名</span><span class="field-value"><code>ResponseResult&lt;PackageServiceItemButtonActionRestDto&gt; queryServiceItemButtonActionInfo(...)</code></span></div>
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightPackageServerApiImpl.java:274-314</code></span></div>
+          <div class="field-row"><span class="field-label">调用方</span><span class="field-value">前端通过 RPC 调用</span></div>
+          <div class="field-row"><span class="field-label">链路（两层问题）</span><span class="field-value">
+            <div style="margin-bottom:6px">🔸 第一层（177行）：调用 <code>queryReceiveIdNotExpired</code>，SQL 用 MarketActUserRight.end_time 过滤</div>
+            <div>🔸 第二层（279/313行）：美信/医幸供应商跳转前用 <code>channelReceivedVO.getEndTime() &lt; currentTime</code> 判过期</div>
+          </span></div>
+          <div class="field-row"><span class="field-label">问题</span><span class="field-value"><span class="issue-tag">双重误拦截</span> 续期后的用户在两个层级都可能被拦截，无法跳转到第三方服务</span></div>
+        </div>
+      </div>
+
+      <!-- RPC 11 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">⑪ UserServiceRightRpcImpl.getUserServiceRight4Calculate</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌</span><span class="badge badge-p0">🔴 P0</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>UserServiceRightRpcImpl.java:140-168</code></span></div>
+          <div class="field-row"><span class="field-label">链路</span><span class="field-value">算价时调用 <code>rightQueryService.queryReceiveIdNotExpired(receiveId)</code> → SQL 用 MarketActUserRight.end_time 过滤</span></div>
+          <div class="field-row"><span class="field-label">问题</span><span class="field-value"><span class="issue-tag">算价错误</span> 续期后查不到有效权益，影响算价结果</span></div>
+        </div>
+      </div>
+
+      <!-- RPC 12 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">⑫ RightRpcImpl.listJCAnXinBaoUserRightService / listUserRightAndChildRight / listChengDuPiccUserRightService</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌</span><span class="badge badge-p2">🟢 P2</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>RightRpcImpl.java:2210-2308, 2935-2979</code></span></div>
+          <div class="field-row"><span class="field-label">链路</span><span class="field-value">查 MarketActUserRight → <code>UserActRightHelper.assembleRestDto()</code> → <code>convertActUserRight()</code> → <code>setEndTime(actUserRight.getEndTime())</code>（UserActRightHelper.java:189）</span></div>
+          <div class="field-row"><span class="field-label">问题</span><span class="field-value"><span class="issue-tag">时间不准</span> 返回给调用方的 DTO 中的 endTime 是原始权益时间</span></div>
+        </div>
+      </div>
+
+      <!-- RPC 13 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">⑬ ChannelReceivedRpcImpl 导出激活明细</span>
+          <div style="display:flex;gap:6px;align-items:center"><span class="badge badge-fail">❌</span><span class="badge badge-p1">🟡 P1</span></div>
+        </div>
+        <div class="card-body">
+          <div class="field-row"><span class="field-label">文件</span><span class="field-value"><code>ChannelReceivedRpcImpl.java:876</code></span></div>
+          <div class="field-row"><span class="field-label">调用方</span><span class="field-value">管理后台导出功能通过 RPC 调用</span></div>
+          <div class="field-row"><span class="field-label">链路</span><span class="field-value"><code>result.setEndTime(DateUtil.format(DateUtil.date(channelReceivedVO.getEndTime() * 1000), ...))</code></span></div>
+          <div class="field-row"><span class="field-label">问题</span><span class="field-value"><span class="issue-tag">导出数据不准</span> 导出的 endTime 是原始激活记录时间，不是续期后的实际到期时间</span></div>
+        </div>
+      </div>
+
+      <!-- 已排查无需处理 -->
+      <h3 id="rpc-excluded" style="margin-top:32px;">✅ 已排查、无需处理的 RPC 接口</h3>
+      <div class="note">以下 RPC 虽引用了 ChannelReceivedEntity/MarketActUserRight，但未使用其 endTime 或使用的是非权益过期相关 endTime，已确认无需处理。</div>
+
+      <table class="exclude-table">
+        <thead>
+          <tr>
+            <th>RPC 文件</th>
+            <th>无需处理原因</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>CancelRightApiImpl</code></td><td>只查 status 判断是否已退款，未用 endTime</td></tr>
+          <tr><td><code>CouponRpcImpl</code></td><td>引用的 endTime 来自 MarketingActEntity（活动时间），非权益过期时间</td></tr>
+          <tr><td><code>RightJobApiImpl</code></td><td>endTime 是任务参数，非实体 endTime</td></tr>
+          <tr><td><code>RightDataCleanRpcImpl</code></td><td>未使用 getEndTime()</td></tr>
+          <tr><td><code>RightUserSignatureApiImpl</code></td><td>未使用 getEndTime()</td></tr>
+          <tr><td><code>IntegralRuleApiImpl</code></td><td>使用 ChannelReceivedEntity 但不涉及 endTime 校验</td></tr>
+          <tr><td><code>IntegralForCApiImpl</code></td><td>使用 MarketActUserRight 但不涉及 endTime 校验</td></tr>
+          <tr><td><code>BuyGiveApiImpl</code></td><td>只取 userId，未用 endTime</td></tr>
+          <tr><td><code>AssistActivityApiImpl</code></td><td>只取 userRight.id，未用 endTime</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════ 总结 ═══════════════════════ -->
+    <div class="section" id="risk-matrix">
+      <h2>📋 五、综合风险等级汇总</h2>
+
+      <h3>🔴 高风险（P0）— 直接影响用户权益判断</h3>
+      <div class="danger-note">这些问题可能导致续期后的有效权益被误判为过期，使用户无法正常使用服务。</div>
+      <table class="risk-matrix">
+        <thead>
+          <tr><th>优先级</th><th>文件</th><th>行号</th><th>问题描述</th></tr>
+        </thead>
+        <tbody>
+          <tr class="p0-row"><td><span class="badge badge-p0">🔴 P0</span></td><td><code>RightQueryRpcImpl.queryChannelReceivedByUserIds</code></td><td>1265</td><td>对外 RPC 用原始 endTime 过滤有效权益，漏返回续期数据</td></tr>
+          <tr class="p0-row"><td><span class="badge badge-p0">🔴 P0</span></td><td><code>RightPackageServerApiImpl</code></td><td>279, 313</td><td>获取服务链接时用原始 endTime 判过期，续期用户被误拦截</td></tr>
+          <tr class="p0-row"><td><span class="badge badge-p0">🔴 P0</span></td><td><code>RightQueryServiceImpl.queryUserRightList</code></td><td>4228-4232</td><td>权益分类（生效/失效）用原始 endTime，续期权益被归为失效</td></tr>
+          <tr class="p0-row"><td><span class="badge badge-p0">🔴 P0</span></td><td><code>RightRpcImpl.queryRightLockStatus</code></td><td>2809</td><td>锁定状态用原始 endTime 过滤，续期用户服务被误锁定</td></tr>
+          <tr class="p0-row"><td><span class="badge badge-p0">🔴 P0</span></td><td><code>RightRpcImpl.grantDXRight</code></td><td>3047</td><td>发放权益用原始 endTime 判断有效期，续期后提前截止</td></tr>
+          <tr class="p0-row"><td><span class="badge badge-p0">🔴 P0</span></td><td><code>RightManager.getRightOptimalCardVo</code></td><td>2480, 2535</td><td>健康数据服务开关用原始 endTime，续期后无法开启</td></tr>
+          <tr class="p0-row"><td><span class="badge badge-p0">🔴 P0</span></td><td><code>RightQueryServiceImpl.useAbleRight / isUsable</code></td><td>2995, 3008, 3043</td><td>权益可用性校验用原始 endTime，续期权益被误判不可用</td></tr>
+        </tbody>
+      </table>
+
+      <h3>🟡 中风险（P1）— 展示层数据不准确</h3>
+      <div class="warning-note">这些问题不直接影响核心业务判断，但会让用户/后台看到错误的时间信息。</div>
+      <table class="risk-matrix">
+        <thead>
+          <tr><th>优先级</th><th>文件</th><th>行号</th><th>问题描述</th></tr>
+        </thead>
+        <tbody>
+          <tr class="p1-row"><td><span class="badge badge-p1">🟡 P1</span></td><td><code>RightQueryRpcImpl.getChannelUserRightVo</code></td><td>2204</td><td>RPC 返回的 endTime 未考虑续期</td></tr>
+          <tr class="p1-row"><td><span class="badge badge-p1">🟡 P1</span></td><td><code>RightRpcImpl.specialMedicExchangeRight</code></td><td>923</td><td>兑换后展示的有效期未考虑续期</td></tr>
+          <tr class="p1-row"><td><span class="badge badge-p1">🟡 P1</span></td><td><code>RightManager.getRightCardVo</code></td><td>1067</td><td>权益卡有效期展示未考虑续期（相关代码被注释）</td></tr>
+          <tr class="p1-row"><td><span class="badge badge-p1">🟡 P1</span></td><td><code>RightManager.getRightCardDetailVo</code></td><td>1386</td><td>权益卡详情有效期未考虑续期</td></tr>
+          <tr class="p1-row"><td><span class="badge badge-p1">🟡 P1</span></td><td><code>RightQueryServiceImpl 多处</code></td><td>3271, 4047, 4919, 5007, 5379</td><td>返回 DTO 的 endTime 未考虑续期</td></tr>
+          <tr class="p1-row"><td><span class="badge badge-p1">🟡 P1</span></td><td><code>ChannelReceivedRpcImpl</code></td><td>876</td><td>对外 RPC 返回原始 endTime，管理后台导出数据不准</td></tr>
+        </tbody>
+      </table>
+
+      <h3>🟢 低风险（P2）— 内部逻辑，影响范围有限</h3>
+      <table class="risk-matrix">
+        <thead>
+          <tr><th>优先级</th><th>文件</th><th>行号</th><th>问题描述</th></tr>
+        </thead>
+        <tbody>
+          <tr class="p2-row"><td><span class="badge badge-p2">🟢 P2</span></td><td><code>RightServiceImpl.checkGrantInstrumentRight</code></td><td>1954</td><td>器械兑换校验</td></tr>
+          <tr class="p2-row"><td><span class="badge badge-p2">🟢 P2</span></td><td><code>GrantRightsService.deleteRightByReceiveId</code></td><td>238-243</td><td>删除权益时校验</td></tr>
+          <tr class="p2-row"><td><span class="badge badge-p2">🟢 P2</span></td><td><code>ChannelRedeemCodeServiceImpl 多处</code></td><td>841-1391</td><td>兑换码过期校验</td></tr>
+          <tr class="p2-row"><td><span class="badge badge-p2">🟢 P2</span></td><td><code>RightUpgradeManager 多处</code></td><td>230-2003</td><td>升级卡过滤</td></tr>
+          <tr class="p2-row"><td><span class="badge badge-p2">🟢 P2</span></td><td><code>BaseUserRightOfMyQuery</code></td><td>178, 208</td><td>我的权益年限展示</td></tr>
+          <tr class="p2-row"><td><span class="badge badge-p2">🟢 P2</span></td><td><code>AbstractGeneralRightOfMyQuery</code></td><td>114</td><td>通用权益有效期</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  // Highlight active sidebar item on scroll
+  const sections = document.querySelectorAll('.section[id], h2[id], h3[id]');
+  const sidebarLinks = document.querySelectorAll('.sidebar-item');
+
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(s => {
+      const top = s.getBoundingClientRect().top;
+      if (top < 120) current = s.id;
+    });
+    sidebarLinks.forEach(link => {
+      link.classList.toggle('active', link.getAttribute('href') === '#' + current);
+    });
+  });
+
+  // Smooth scroll
+  sidebarLinks.forEach(link => {
+    link.addEventListener('click', e => {
+      e.preventDefault();
+      const target = document.querySelector(link.getAttribute('href'));
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+</script>
+</body>
+</html>
